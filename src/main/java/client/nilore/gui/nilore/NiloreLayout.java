@@ -2,10 +2,6 @@ package client.nilore.gui.nilore;
 
 /**
  * Geometry of the Nilore click GUI.
- *
- * <p>Every length below is a literal from the reference stylesheet, so the ported window keeps the
- * exact same proportions, offsets and spacings. The whole design is laid out in a fixed
- * 1360x860 space and scaled uniformly to the screen afterwards.
  */
 public final class NiloreLayout {
     public static final float WIDTH = 1360, HEIGHT = 860, RADIUS = 22;
@@ -51,7 +47,7 @@ public static float typeScale(float css) {
 
     /**
      * Type sizes, held here rather than in the renderer because the row heights below are derived
-     * from them. Each is the reference's CSS pixel size doubled - the {@code FontRenderer} size
+     * from them. Each is a CSS pixel size doubled - the {@code FontRenderer} size
      * argument renders at about half its value - then scaled, divided back out of
      * {@link #WINDOW_SCALE} and rounded to a whole point, since AWT can only grid-fit a glyph at an
      * integral size and a fractional one silently loses hinting, which is what makes text look rough.
@@ -79,7 +75,6 @@ public static float typeScale(float css) {
     public static final float BRAND_PAD_X = 8, BRAND_PAD_TOP = 6, BRAND_PAD_BOTTOM = 2;
     public static final float BRAND_ROW = 34;
     public static final float BRAND_H = BRAND_PAD_TOP + BRAND_ROW + BRAND_PAD_BOTTOM;
-    /** The brand is a single word, centred in the row the reference used for its icon and subtitle. */
     public static final float BRAND_TEXT_X = SIDE_PAD_X + BRAND_PAD_X;
     public static final float BRAND_CENTER_Y = SIDE_PAD_Y + BRAND_PAD_TOP + BRAND_ROW / 2f;
     public static final float NAV_TOP = SIDE_PAD_Y + BRAND_H + SIDE_GAP;
@@ -227,7 +222,7 @@ public static float typeScale(float css) {
     }
 
     /**
-     * Centres of the two lines of a list row. The reference centres the whole text block against the
+     * Centres of the two lines of a list row. The whole text block is centred against the
      * row, not each line against the padding, which is what keeps the title level with the switch.
      */
     public static float noteTitleY(Rect row) {

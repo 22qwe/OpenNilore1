@@ -19,8 +19,7 @@ import static client.nilore.gui.nilore.NiloreLayout.*;
 /**
  * Immediate-mode painter for the Nilore click GUI.
  *
- * <p>Geometry comes from {@link NiloreLayout}, colours from {@link NiloreTheme.Palette}; the
- * drawing order mirrors the reference stylesheet's stacking.
+ * <p>Geometry comes from {@link NiloreLayout}, colours from {@link NiloreTheme.Palette}.
  */
 public final class NiloreRenderer {
 public enum Kind { SWITCH, SLIDER, SELECT, SEGMENTED, KEYBIND }
@@ -350,7 +349,6 @@ private enum Face {
             rounded(bounds, SELECT_RADIUS, palette.field);
             text(value, bounds.x() + SELECT_PAD_LEFT, bounds.y() + bounds.height() / 2f, Face.REGULAR, SZ_BODY,
                     palette.text, bounds.width() - SELECT_PAD_LEFT - SELECT_PAD_RIGHT);
-            // Chevron path "m2.6 4.4 3.4 3.4 3.4-3.4" from the reference's 12x12 viewBox.
             float cx = bounds.right() - 9 - SELECT_CHEVRON / 2f;
             float cy = bounds.y() + bounds.height() / 2f;
             stroke(cx - 3.4f, cy - 1.6f, cx, cy + 1.8f, 1.55f, palette.secondary);
@@ -401,7 +399,6 @@ private enum Face {
         void search(Frame frame) {
             Rect box = searchBox();
             rounded(box, box.height() / 2f, palette.field);
-            // Magnifier from the reference's own 20x20 viewBox, scaled into the 16px slot.
             float ix = box.x() + SEARCH_INNER_PAD;
             float iy = box.y() + (box.height() - SEARCH_ICON) / 2f;
             float k = SEARCH_ICON / 20f;
@@ -461,7 +458,6 @@ private enum Face {
                 if (group.bounds().y() > HEIGHT || group.bounds().bottom() < DETAIL_PAD_TOP) {
                     continue;
                 }
-                // A group without a title collapses its header, as the reference hides that element.
                 float header = group.title().isEmpty() ? 0 : GROUP_TITLE_LINE + GROUP_TITLE_GAP;
                 if (header > 0) {
                     text(group.title(), GROUP_X + GROUP_TITLE_GAP, group.bounds().y() + GROUP_TITLE_LINE / 2f,
@@ -566,7 +562,6 @@ private enum Face {
             clip.pop();
         }
 
-        /** Tick path "m3 7.3 2.55 2.55L11 4.4" from the reference's 14x14 viewBox. */
         void check(float cx, float cy, int color) {
             stroke(cx - 4, cy + .3f, cx - 1.45f, cy + 2.85f, 1.75f, color);
             stroke(cx - 1.45f, cy + 2.85f, cx + 4, cy - 2.6f, 1.75f, color);
@@ -574,10 +569,6 @@ private enum Face {
 
         // -- icon set -------------------------------------------------------------
 
-        /**
-         * Stroke icons laid out in the reference's own 22x22 viewBox, so each shape is the SVG
-         * path of the original rather than a redrawn approximation.
-         */
         void icon(int type, float x, float y, float size, int color) {
             float s = size / 22f;
             float w = 1.55f * s;

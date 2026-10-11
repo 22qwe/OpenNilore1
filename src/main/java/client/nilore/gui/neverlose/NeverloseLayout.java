@@ -5,9 +5,6 @@ import java.util.List;
 
 /**
  * Geometry of the Neverlose click GUI.
- *
- * <p>Every constant below is copied verbatim from the reference implementation so the
- * ported window sits at the exact same coordinates on both clients.
  */
 public final class NeverloseLayout {
     public static final float WIDTH = 760, HEIGHT = 496, SIDEBAR = 180, HEADER = 64;

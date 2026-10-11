@@ -2,8 +2,7 @@ package client.nilore.modules.impl.misc.music.dsp;
 
 /**
  * Pitch glide (portamento) over a PCM buffer — an independent implementation of
- * the "frequency sliding / glide transition" effect (no code taken from the
- * unlicensed audio_transport project).
+ * the "frequency sliding / glide transition" effect.
  *
  * Resamples interleaved 16-bit PCM while linearly sliding the playback ratio
  * from fromRatio to toRatio across the whole buffer. ratio < 1 lowers pitch,

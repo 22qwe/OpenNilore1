@@ -17,19 +17,10 @@ import static client.nilore.gui.neverlose.NeverloseLayout.*;
 
 /**
  * Immediate-mode painter for the Neverlose click GUI.
- *
- * <p>Colours and offsets mirror the reference renderer; geometry comes from {@link NeverloseLayout}.
  */
 public final class NeverloseRenderer {
     public static final int ACCENT = 0xFF3A85E2, TEXT = 0xFFBDC3C7, WHITE = 0xFFEDF3F5;
 
-    /**
-     * Global text scale. 1 = the reference's pixel sizes; raise or lower to tune every label at once.
-     *
-     * <p>Sizes are ~2x the reference values because {@link FontRenderer} is rasterised at
-     * {@code size * guiScale} but drawn with a {@code 1 / (2 * guiScale)} scale, so the size
-     * argument renders at about half its value.
-     */
     private static final float TEXT_SCALE = 1f;
     private static final float SZ_BRAND = 48 * TEXT_SCALE, SZ_GROUP = 21 * TEXT_SCALE, SZ_NAV = 25 * TEXT_SCALE,
             SZ_TITLE = 26 * TEXT_SCALE, SZ_CHIP = 18 * TEXT_SCALE, SZ_LABEL = 23 * TEXT_SCALE,
@@ -587,7 +578,6 @@ public final class NeverloseRenderer {
         }
 
         void shadow(Rect bounds, float radius) {
-            // Layered translucent rings stand in for the reference box-gradient shadow.
             int layers = 10;
             for (int i = layers; i >= 1; i--) {
                 float spread = i * 1.6f;

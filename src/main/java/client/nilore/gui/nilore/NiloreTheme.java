@@ -2,9 +2,6 @@ package client.nilore.gui.nilore;
 
 /**
  * Colour tokens of the Nilore click GUI.
- *
- * <p>Both palettes are the literal custom properties of the reference stylesheet, including the
- * translucency, so the frosted panes composite the same way over the blurred backdrop.
  */
 public final class NiloreTheme {
     public static final class Palette {

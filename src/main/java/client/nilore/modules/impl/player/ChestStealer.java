@@ -538,10 +538,6 @@ extends Module {
             clickDelayMs = this.clickDelaySetting.getValue().longValue();
             if (this.pendingSlot < this.pendingMenu.slots.size()) {
                 if (this.dangerSetting.getValue() && mc.getConnection() != null) {
-                    // Reference parity: the custom payload plus a pong with the max id, both per
-                    // click. Disabler's Themis Blink emits its own pong at id 0 on a 200ms cadence,
-                    // which is a different trick on a different trigger, so this one is not folded
-                    // into it — the id and the per-slot timing are the part that has to match.
                     PacketUtil.sendQueued(new ServerboundCustomPayloadPacket(
                             ResourceLocation.tryBuild("minecraft", "test"), new FriendlyByteBuf(Unpooled.buffer())));
                     PacketUtil.sendQueued(new ServerboundPongPacket(Integer.MAX_VALUE));

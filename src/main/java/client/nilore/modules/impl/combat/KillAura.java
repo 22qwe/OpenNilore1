@@ -128,9 +128,6 @@ public class KillAura extends Module {
     public int sprintTickCounter;
     public Rotation rotation;
 
-    /** The sprint release is one-shot; the Keep Sprint hold arms the next one. */
-    private boolean sprintCancelled;
-
     private Random organicRandom;
 
     private float organicYawOffset;
@@ -147,7 +144,6 @@ public class KillAura extends Module {
         this.reinitOrganicModel();
         this.targetIndex = 0;
         this.attacks = 0.0f;
-        this.sprintCancelled = false;
         target = null;
         aimingTarget = null;
         targetList.clear();
@@ -157,7 +153,6 @@ public class KillAura extends Module {
     @Override
     public void onDisable() {
         this.attacks = 0.0f;
-        this.sprintCancelled = false;
         target = null;
         aimingTarget = null;
         this.sprintTickCounter = 0;
@@ -361,9 +356,6 @@ public class KillAura extends Module {
         if (!NiloreClient.isReady()) {
             return;
         }
-        if (!isSprintReleaseWindow()) {
-            this.sprintCancelled = false;
-        }
         double reach = Mth.clamp(this.reach.getValue().doubleValue(),
                 this.reach.getMin().doubleValue(),
                 this.reach.getMax().doubleValue());
@@ -492,36 +484,44 @@ public class KillAura extends Module {
                 || (Critical.INSTANCE != null && Critical.INSTANCE.isEnabled()))) {
             return false;
         }
-        // Velocity gate, mirroring the reference's canCrit(). The counter hits are sprint hits by
-        // construction - the NoXZ counter only swings while isSprinting() holds - so they cannot
-        // crit, and swinging the aura into the same window would just fight it for the per-tick
-        // attack lock. The isInDelayWindow branch is the keepsprint half of the contract: while the
-        // delay window still owns the input (on ground, mid-counter, or about to land) the aura
-        // stays out so the window's own isSprinting() gate stays true.
+        // Velocity gate. The counter hits are sprint hits by construction - the NoXZ counter only
+        // swings while isSprinting() holds - so they cannot crit, and swinging the aura into the
+        // same window would just fight it for the per-tick attack lock. The isInDelayWindow branch
+        // is the keepsprint half of the contract: while the delay window still owns the input
+        // (on ground, mid-counter, or about to land) the aura stays out so the window's own
+        // isSprinting() gate stays true.
         if (NoXZMode.isCountering()) {
             return false;
         }
         if (NoXZMode.isInDelayWindow() && shouldKeepSprintInDelayWindow()) {
+            return false;
+        }
+        if (this.keepSprint.getValue() && mc.player.isSprinting() && !NoXZMode.handlingVelocity) {
             return false;
         }
         return RotationUtil.isWithinReach(target);
     }
 
     /**
-     * The reference's canCrit() gate. While it holds, the reference drops the sprint key and clears
-     * the sprint flag from its SprintEvent handler, so the swing that follows lands as a crit
-     * instead of a sprint hit. Ported verbatim including the 3.5-block reach (12.25 squared) and the
-     * velocity interlocks, because those are what keep the release from firing at the wrong time.
+     * The crit gate. While it holds, the sprint key is dropped and the sprint flag cleared from the
+     * SprintEvent handler, so the swing that follows lands as a crit instead of a sprint hit. The
+     * 3.5-block reach (12.25 squared) and the velocity interlocks are what keep the release from
+     * firing at the wrong time.
      */
     public boolean canCritUnderVelocity() {
         if (mc.player == null || mc.level == null || target == null) {
             return false;
         }
-        if (NoXZMode.isInDelayWindow() && shouldKeepSprintInDelayWindow()) {
-            return false;
-        }
-        if (NoXZMode.isCountering()) {
-            return false;
+        if (AntiKB.INSTANCE != null && AntiKB.INSTANCE.isEnabled()) {
+            if (NoXZMode.isInDelayWindow() && shouldKeepSprintInDelayWindow()) {
+                return false;
+            }
+            if (NoXZMode.isCountering()) {
+                return false;
+            }
+            if (AntiKB.mode.is("Jump Reset") && JumpResetMode.isJumping) {
+                return false;
+            }
         }
         if (target.distanceToSqr(mc.player) > 12.25) {
             return false;
@@ -529,7 +529,7 @@ public class KillAura extends Module {
         if (mc.player.isDeadOrDying() || !this.keepSprint.getValue()) {
             return false;
         }
-        return !mc.player.onGround() || !mc.options.keyJump.isDown();
+        return !mc.player.isUsingItem() || !mc.options.keyUse.isDown();
     }
 
     /**
@@ -545,18 +545,6 @@ public class KillAura extends Module {
         mc.options.keySprint.setDown(false);
         if (mc.player != null && mc.player.isSprinting()) {
             mc.player.setSprinting(false);
-        }
-    }
-
-    /** No jumping between a release and the sprint coming back. */
-    @EventTarget
-    public void onStrafe(StrafeEvent strafeEvent) {
-        if (mc.player == null || !this.keepSprint.getValue()) {
-            return;
-        }
-        // StrafeEvent carries Input.jumping in its "sprinting" field (see KeyboardInputPatch).
-        if (this.sprintCancelled && !mc.player.isSprinting()) {
-            strafeEvent.setSprinting(false);
         }
     }
 
@@ -590,45 +578,6 @@ public class KillAura extends Module {
         return this.throughWalls.getValue() || mc.player.hasLineOfSight(entity);
     }
 
-    public void markSprintReleased() {
-        this.sprintCancelled = true;
-    }
-
-    public boolean isSprintReleased() {
-        return this.sprintCancelled;
-    }
-
-    public static boolean isSprintReleaseWindow() {
-        if (mc.player == null) return false;
-        return !mc.player.onGround();
-    }
-
-    public static boolean shouldStopSprint() {
-        KillAura aura = INSTANCE;
-        if (aura == null) return false;
-        // The reference checks nothing about the aura being enabled - canCrit() stands on its own.
-        // With the aura off there is no target, so the reach gate never opens on its own.
-        if (aura.canCritUnderVelocity()) return true;
-        if (!aura.keepSprint.getValue()) return false;
-        if (aura.sprintCancelled) return false;
-        if (mc.player == null || target == null) return false;
-        if (mc.player.isUsingItem()) return false;
-        // The Jump Reset gate belongs to that branch only. Checking the flag unconditionally also
-        // pinned the release off for good after a mode switch: JumpResetMode clears isJumping from its
-        // own handler, which starts with "if (!AntiKB.mode.is("Jump Reset")) return;" - so switching
-        // away mid-jump-reset leaves the flag stuck true, every sprint release in the client stops
-        // firing, and the Keep Sprint hold has nothing to wait for.
-        if (AntiKB.mode.is("Jump Reset") && JumpResetMode.isJumping) return false;
-        if (NoXZMode.isInDelayWindow() && shouldKeepSprintInDelayWindow()) return false;
-        if (!aura.canAttackTarget()) return false;
-        // No damage prediction here: the prediction belongs to CriticalsModule's crit-sync
-        // predicate, not to the sprint release, and putting it here let the sprint stay on
-        // for good whenever the estimate could not beat the recorded swing - with Keep Sprint's
-        // hold that means no attack at all in the air.
-        return isSprintReleaseWindow();
-    }
-
-    /** Shared "the delay window still owns the input" predicate: on the ground or mid-counter, plus a falling landing check. NoXZMode's onStrafe reads it too. */
     public static boolean shouldKeepSprintInDelayWindow() {
         if (mc.player == null || mc.level == null) return false;
         if (mc.player.onGround() || NoXZMode.isCountering()) return true;

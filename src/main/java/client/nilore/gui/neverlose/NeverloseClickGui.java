@@ -31,12 +31,6 @@ import client.nilore.settings.impl.NumberSetting;
 
 import static client.nilore.gui.neverlose.NeverloseLayout.*;
 
-/**
- * Click GUI ported from the Neverlose style of the reference client.
- *
- * <p>Layout, colours and interaction flow mirror the original; only the data source changes
- * (Nilore modules / settings instead of the reference feature manager).
- */
 public final class NeverloseClickGui extends Screen {
     public static final NeverloseClickGui instance = new NeverloseClickGui();
 

@@ -38,12 +38,6 @@ import client.nilore.settings.impl.NumberSetting;
 
 import static client.nilore.gui.nilore.NiloreLayout.*;
 
-/**
- * Click GUI ported from the reference's Apple-style notes layout.
- *
- * <p>The window is laid out in the reference's own 1360x860 coordinate space and scaled to fit the
- * screen, so every pane, row and control lands on the same offset as the original.
- */
 public final class NiloreClickGui extends Screen {
     public static final NiloreClickGui instance = new NiloreClickGui();
 
@@ -424,8 +418,6 @@ public final class NiloreClickGui extends Screen {
             if (menuClick()) {
                 return true;
             }
-            // Clicking the control that owns the menu just closes it; anywhere else the click
-            // still reaches whatever sits underneath, like the reference's document listener.
             boolean onAnchor = menu.anchor.contains(this.mouseX, this.mouseY);
             menu.open = false;
             if (onAnchor) {
