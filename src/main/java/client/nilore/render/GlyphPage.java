@@ -46,6 +46,7 @@ class GlyphPage {
      * 之前这里两个分支返回的是同一个字体，等于 fallback 从来没生效过。
      */
     private final Font[] fallbacks;
+    private final boolean hinted;
     private final Char2ObjectArrayMap<Glyph> glyphMap = new Char2ObjectArrayMap();
     private final BitSet rasterized = new BitSet();
     int imageWidth;
@@ -55,6 +56,7 @@ class GlyphPage {
     private Graphics2D atlasGraphics;
     private NativeImage nativeImage;
     private DynamicTexture texture;
+    private long pixelsPtr;
 
     public GlyphPage(char startChar, char endChar, Font font, ResourceLocation textureLocation, int padding) {
         this(startChar, endChar, font, textureLocation, padding, 0, null);
@@ -66,6 +68,11 @@ class GlyphPage {
 
     public GlyphPage(char startChar, char endChar, Font font, ResourceLocation textureLocation, int padding,
                      int boldPx, Font[] fallbacks) {
+        this(startChar, endChar, font, textureLocation, padding, boldPx, fallbacks, true);
+    }
+
+    public GlyphPage(char startChar, char endChar, Font font, ResourceLocation textureLocation, int padding,
+                     int boldPx, Font[] fallbacks, boolean hinted) {
         this.startChar = startChar;
         this.endChar = endChar;
         this.font = font;
@@ -73,6 +80,7 @@ class GlyphPage {
         this.padding = padding;
         this.boldPx = Math.max(0, boldPx);
         this.fallbacks = fallbacks == null ? new Font[0] : fallbacks;
+        this.hinted = hinted;
     }
 
     /**
@@ -171,7 +179,9 @@ class GlyphPage {
         this.imageHeight = this.atlasImage.getHeight();
         this.atlasGraphics = this.atlasImage.createGraphics();
         this.atlasGraphics.setColor(Color.WHITE);
-        this.atlasGraphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        this.atlasGraphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, this.hinted
+                ? RenderingHints.VALUE_FRACTIONALMETRICS_OFF
+                : RenderingHints.VALUE_FRACTIONALMETRICS_ON);
         this.atlasGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         this.atlasGraphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         this.atlasGraphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
@@ -186,15 +196,17 @@ class GlyphPage {
     private void createTexture() {
         try {
             this.nativeImage = new NativeImage(NativeImage.Format.RGBA, this.imageWidth, this.imageHeight, false);
+            this.pixelsPtr = (Long)ReflectionUtil.getStaticField(this.nativeImage, "pixels",
+                    "com/mojang/blaze3d/platform/NativeImage");
             GlyphPage.fillBackground(this.nativeImage);
             this.texture = new DynamicTexture(this.nativeImage);
             RenderSystem.bindTexture(this.texture.getId());
-            // TextureUtil.prepareImage pins TEXTURE_MAX_LEVEL to 0; release it so a mip chain can be
-            // generated. The atlas is rasterized at twice the physical resolution, so drawing it
-            // without mipmaps minifies with a bare 2x2 tap and the text shimmers.
-            GL11.glTexParameteri(3553, 33085, 4);
-            GL11.glTexParameteri(3553, 10241, 9729);
-            GL11.glTexParameteri(3553, 10240, 9729);
+            GL11.glTexParameteri(3553, 10241, 9729); // GL_TEXTURE_MIN_FILTER = GL_LINEAR
+            GL11.glTexParameteri(3553, 10240, 9729); // GL_TEXTURE_MAG_FILTER = GL_LINEAR
+            if (!this.hinted) {
+                GL11.glTexParameteri(3553, 33085, 4); // GL_TEXTURE_MAX_LEVEL
+                GL11.glTexParameteri(3553, 33083, 4); // GL_TEXTURE_MAX_LOD
+            }
             ClientBase.mc.getTextureManager().register(this.textureLocation, this.texture);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -223,11 +235,10 @@ class GlyphPage {
             this.writeRegion(glyph.u(), glyph.v(), width, height);
             this.texture.bind();
             this.nativeImage.upload(0, glyph.u(), glyph.v(), glyph.u(), glyph.v(), width, height, false, false);
-            // NativeImage.upload() calls setFilter(false, false), which drops the texture back to
-            // GL_NEAREST. Re-apply linear filtering after every region upload or the atlas ends up
-            // minified with nearest sampling and the text looks aliased.
-            this.texture.setFilter(true, true);
-            GL30.glGenerateMipmap(3553);
+            this.texture.setFilter(true, !this.hinted);
+            if (!this.hinted) {
+                GL30.glGenerateMipmap(3553);
+            }
             this.rasterized.set(glyph.value() - this.startChar);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -235,8 +246,8 @@ class GlyphPage {
     }
 
     private void writeRegion(int x, int y, int width, int height) {
-        long pixelsPtr = (Long)ReflectionUtil.getStaticField(this.nativeImage, "pixels", "com/mojang/blaze3d/platform/NativeImage");
-        IntBuffer intBuffer = MemoryUtil.memIntBuffer(pixelsPtr, this.nativeImage.getWidth() * this.nativeImage.getHeight());
+        IntBuffer intBuffer = MemoryUtil.memIntBuffer(this.pixelsPtr,
+                this.nativeImage.getWidth() * this.nativeImage.getHeight());
         WritableRaster raster = this.atlasImage.getRaster();
         ColorModel colorModel = this.atlasImage.getColorModel();
         int numBands = raster.getNumBands();

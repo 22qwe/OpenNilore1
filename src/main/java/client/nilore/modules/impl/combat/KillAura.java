@@ -73,6 +73,7 @@ import client.nilore.utils.misc.Assets;
 import client.nilore.utils.render.RenderUtil;
 import client.nilore.utils.rotation.Rotation;
 import client.nilore.utils.rotation.RotationHandler;
+import client.nilore.utils.rotation.RotationSmoother;
 import client.nilore.event.EventTarget;
 
 public class KillAura extends Module {
@@ -100,11 +101,11 @@ public class KillAura extends Module {
     public final NumberSetting throughWallsRange = new NumberSetting("Through Walls Range", 3.0, 1.0, 6.0, 0.1,
             () -> (Boolean) this.throughWalls.getValue());
     public final BooleanSetting ignoreSkipTicks = new BooleanSetting("Ignore skip ticks", false);
-    public final BooleanSetting fakeAutoBlock   = new BooleanSetting("Fake AutoBlock", true);
+    public final BooleanSetting fakeAutoBlock   = new BooleanSetting("Fake AutoBlock", false);
 
     public final NumberSetting reach       = new NumberSetting("Reach", 3.0, 1.0, 4.0, 0.1);
-    public final NumberSetting maxAps      = new NumberSetting("Max APS", 12.0, 1.0, 20.0, 1.0);
-    public final NumberSetting minAps      = new NumberSetting("Min APS", 9.0, 1.0, 20.0, 1.0);
+    public final NumberSetting maxAps      = new NumberSetting("Max APS", 9, 1.0, 20.0, 1.0);
+    public final NumberSetting minAps      = new NumberSetting("Min APS", 8, 1.0, 20.0, 1.0);
     public final NumberSetting switchSize  = new NumberSetting("Switch Size", 1.0, 1.0, 5.0, 1.0,
             () -> !(Boolean) this.infSwitch.getValue());
     public final NumberSetting switchDelay = new NumberSetting("Switch Delay (Attack Times)", 1.0, 1.0, 10.0, 1.0);
@@ -114,13 +115,13 @@ public class KillAura extends Module {
 
     public final ModeSetting targetMode   = new ModeSetting("Target Mode", "Single", "Switch", "Multiple").withDefault("Single");
     public final ModeSetting priorityMode = new ModeSetting("Priority", "Distance", "FoV", "Health", "LivingTime", "Armor", "None").withDefault("FoV");
-    public final ModeSetting targetEsp    = new ModeSetting("Target ESP", "None", "Spiral", "Box", "Tab", "NurikZapen").withDefault("NurikZapen");
+    public final ModeSetting targetEsp    = new ModeSetting("Target ESP", "None", "Spiral", "Box", "Tab", "NurikZapen").withDefault("Spiral");
 
-    public final NumberSetting rotationSpeed = new NumberSetting("Rotation Speed", 180, 1, 180, 1);
+    public final NumberSetting rotationSpeed = new NumberSetting("Rotation Speed", 110, 1, 180, 1);
 
-    public final NumberSetting rotationDrift = new NumberSetting("Drift", 1.0, 0, 3, 0.1);
+    public final NumberSetting rotationDrift = new NumberSetting("Drift", 0.3, 0, 3, 0.1);
 
-    public final NumberSetting rotationJitter = new NumberSetting("Jitter", 1.0, 0, 3, 0.1);
+    public final NumberSetting rotationJitter = new NumberSetting("Jitter", 1.3, 0, 3, 0.1);
 
     private int attackTimes;
     private float attacks;
@@ -129,6 +130,7 @@ public class KillAura extends Module {
     public Rotation rotation;
 
     private Random organicRandom;
+    private final RotationSmoother rotSmoother = new RotationSmoother(new Random());
 
     private float organicYawOffset;
     private float organicPitchOffset;
@@ -142,6 +144,7 @@ public class KillAura extends Module {
     public void onEnable() {
         this.rotation = null;
         this.reinitOrganicModel();
+        this.rotSmoother.reset();
         this.targetIndex = 0;
         this.attacks = 0.0f;
         target = null;
@@ -168,10 +171,12 @@ public class KillAura extends Module {
     }
 
     private Rotation computeRotation(Entity target, Rotation from, double speed, double range) {
-        if (!this.throughWalls.getValue() && !mc.player.hasLineOfSight(target)) {
-            return null;
-        }
-        Vec3 aimPoint = RotationUtil.findAimPoint(target, range, 1.0f);
+        // The old eye-to-eye hasLineOfSight gate was stricter than the attack raycast: a target
+        // whose eyes were hidden behind a slab or fence but whose body was exposed was dropped
+        // entirely (no turn, no swing). Let findAimPoint's per-point raycast decide instead;
+        // Through Walls keeps the occluded fallback.
+        Vec3 aimPoint = RotationUtil.findAimPoint(target, range, 1.0f,
+                this.throughWalls.getValue());
         if (aimPoint == null) {
             return null;
         }
@@ -191,7 +196,8 @@ public class KillAura extends Module {
             jittered = base;
         }
 
-        Rotation smoothed = RotationUtil.smoothRotationTo(from, jittered, speed);
+        Rotation smoothed = this.rotSmoother.tick(from, jittered, speed);
+        smoothed = RotationSmoother.patchConstantRotation(smoothed, from);
         if (smoothed == null
                 || Float.isNaN(smoothed.getYaw()) || Float.isNaN(smoothed.getPitch())
                 || Float.isInfinite(smoothed.getYaw()) || Float.isInfinite(smoothed.getPitch())) {
@@ -470,12 +476,12 @@ public class KillAura extends Module {
         if (target == null || !targetList.contains(target)) {
             return false;
         }
-        if (!this.throughWalls.getValue()) {
-            double reachNow = Math.max(this.reach.getValue().doubleValue(),
-                    RotationUtil.getReachLimit());
-            if (!RotationUtil.isLookingAt(target, reachNow, 0.1f)) {
-                return false;
-            }
+        double reachNow = Math.max(this.reach.getValue().doubleValue(),
+                RotationUtil.getReachLimit());
+        // Through Walls only skips the block-clipped raycast inside Through Walls Range; beyond
+        // it the attack still has to see the target, otherwise the range slider is never read.
+        if (!this.ignoreBlocksAt(target) && !RotationUtil.isLookingAt(target, reachNow, 0.1f)) {
+            return false;
         }
         if (this.delayMode.is("1.9") && mc.player.getAttackStrengthScale(0.0f) < 0.95f) {
             return false;
@@ -500,6 +506,19 @@ public class KillAura extends Module {
             return false;
         }
         return RotationUtil.isWithinReach(target);
+    }
+
+    /**
+     * Whether Through Walls may skip the block-clipped raycast for this entity. Measured from
+     * the eye to the closest point of the hitbox.
+     */
+    private boolean ignoreBlocksAt(Entity entity) {
+        if (!this.throughWalls.getValue() || entity == null || mc.player == null) {
+            return false;
+        }
+        Vec3 eyePos = mc.player.getEyePosition(1.0f);
+        double dist = RotationUtil.closestPoint(eyePos, entity.getBoundingBox()).distanceTo(eyePos);
+        return dist <= this.throughWallsRange.getValue().doubleValue();
     }
 
     /**
@@ -599,6 +618,11 @@ public class KillAura extends Module {
             for (Entity entity : targetList) {
                 if (mc.player == null) break;
                 if (!RotationUtil.isWithinReach(entity)) continue;
+                // The single-target path is gated by isLookingAt; this branch used to attack
+                // every in-reach entity with no visibility check at all, which is where the
+                // occasional through-wall hit came from. Require a visible point unless the
+                // entity is inside the Through Walls range.
+                if (!this.ignoreBlocksAt(entity) && !RotationUtil.canSeeAnyPoint(entity)) continue;
                 if (this.attackEntity(entity)) {
                     attacked++;
                 }

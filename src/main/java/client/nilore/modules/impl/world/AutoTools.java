@@ -23,7 +23,7 @@ import client.nilore.event.EventTarget;
 
 public class AutoTools
 extends Module {
-    private final BooleanSetting checkSword = new BooleanSetting("Check Sword", true);
+    private final BooleanSetting checkSword = new BooleanSetting("Check Sword", false);
     private final BooleanSetting switchBack = new BooleanSetting("Switch Back", true);
     private final BooleanSetting silent = new BooleanSetting("Silent", true);
     public static String[] toolNames;

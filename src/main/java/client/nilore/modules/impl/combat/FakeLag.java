@@ -45,9 +45,9 @@ public class FakeLag extends Module {
 
     public static FakeLag INSTANCE;
 
-    private final NumberSetting range = new NumberSetting("Range", 4.5, 1, 10, 0.5);
-    private final NumberSetting delay = new NumberSetting("Delay", 160, 50, 1000, 10);
-    private final NumberSetting recoilTime = new NumberSetting("Recoil Time", 250, 0, 1000, 10);
+    private final NumberSetting range = new NumberSetting("Range", 4, 1, 10, 0.5);
+    private final NumberSetting delay = new NumberSetting("Delay", 140, 50, 1000, 10);
+    private final NumberSetting recoilTime = new NumberSetting("Recoil Time", 50, 0, 1000, 10);
     private final ModeSetting mode = new ModeSetting("Mode", "Dynamic", "Constant").withDefault("Dynamic");
     private final BooleanSetting flushOnAttack = new BooleanSetting("Flush On Attack", true);
     private final BooleanSetting flushOnInteract = new BooleanSetting("Flush On Interact", true);

@@ -21,6 +21,7 @@ import client.nilore.modules.Module;
 import client.nilore.render.DrawContext;
 import client.nilore.render.FontPresets;
 import client.nilore.render.FontRenderer;
+import client.nilore.render.Fonts;
 import client.nilore.render.Paint;
 import client.nilore.render.RoundedRectangle;
 import client.nilore.render.RoundedRectShader;
@@ -38,17 +39,17 @@ public class BetterChat extends Module {
     public static final float LINE_DROP = 10.0f;
 
     private final BooleanSetting backgroundEnabled = new BooleanSetting("Background", true);
-    private final NumberSetting backgroundAlpha = new NumberSetting("Background Alpha", 70, 0, 255, 1);
-    private final NumberSetting backgroundRadius = new NumberSetting("Background Radius", 4.0f, 0.0f, 20.0f, 0.5f);
+    private final NumberSetting backgroundAlpha = new NumberSetting("Background Alpha", 150, 0, 255, 1);
+    private final NumberSetting backgroundRadius = new NumberSetting("Background Radius", 4, 0.0f, 20.0f, 0.5f);
     private final BooleanSetting glowEnabled = new BooleanSetting("Glow", true);
-    private final NumberSetting glowRadius = new NumberSetting("Glow Radius", 10.0f, 0.0f, 40.0f, 1.0f);
-    private final NumberSetting glowAlpha = new NumberSetting("Glow Alpha", 170, 0, 255, 1);
+    private final NumberSetting glowRadius = new NumberSetting("Glow Radius", 13, 0.0f, 40.0f, 1.0f);
+    private final NumberSetting glowAlpha = new NumberSetting("Glow Alpha", 85, 0, 255, 1);
     private final BooleanSetting blurEnabled = new BooleanSetting("Blur", false);
-    private final NumberSetting blurStrength = new NumberSetting("Blur Strength", 15.0f, 1.0f, 30.0f, 1.0f);
-    private final NumberSetting blurOpacity = new NumberSetting("Blur Opacity", 0.95f, 0.0f, 1.0f, 0.05f);
+    private final NumberSetting blurStrength = new NumberSetting("Blur Strength", 22, 1.0f, 30.0f, 1.0f);
+    private final NumberSetting blurOpacity = new NumberSetting("Blur Opacity", 1, 0.0f, 1.0f, 0.05f);
     private final ModeSetting fontMode = new ModeSetting("Font", "Minecraft", "Minecraft", "PingFang")
-            .withDefault("Minecraft");
-    private final NumberSetting yOffset = new NumberSetting("Y Offset", 0.0f, -60.0f, 60.0f, 1.0f);
+            .withDefault("PingFang");
+    private final NumberSetting yOffset = new NumberSetting("Y Offset", -60, -60.0f, 60.0f, 1.0f);
 
     private static Field trimmedMessagesField;
     private static Field scrollPosField;
@@ -128,7 +129,7 @@ public class BetterChat extends Module {
 
         this.renderBackground(graphics);
 
-        FontRenderer font = FontPresets.pingfang(18.0f);
+        FontRenderer font = FontPresets.pingfang(18.0f, Fonts.deviceScale(scale), true);
         PoseStack pose = graphics.pose();
         pose.pushPose();
         pose.scale(scale, scale, 1.0f);

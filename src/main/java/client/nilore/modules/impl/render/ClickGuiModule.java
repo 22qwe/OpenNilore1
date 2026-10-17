@@ -14,8 +14,8 @@ import client.nilore.settings.impl.ModeSetting;
 public class ClickGuiModule
 extends Module {
     public static final Logger LOGGER = LogManager.getLogger(ClickGuiModule.class);
-    public final ModeSetting styleSetting = new ModeSetting("Mode", "Old", "Panel", "New", "Neverlose").withDefault("Old");
-    public final ModeSetting niloreTheme = new ModeSetting("Theme", "Light", "Dark")
+    public final ModeSetting styleSetting = new ModeSetting("Mode", "Old", "Panel", "New", "Neverlose", "Nilore").withDefault("Nilore");
+    public final ModeSetting niloreTheme = new ModeSetting("Theme", "Light", "Dark").withDefault("Light")
             .withVisibility(() -> this.styleSetting.is("Nilore"));
 
     public ClickGuiModule() {

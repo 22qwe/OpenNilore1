@@ -8,6 +8,10 @@ public final class FontPresets {
         return Fonts.getRenderer("pingfang_sc_regular.ttf", size);
     }
 
+    public static FontRenderer pingfang(float size, float rasterScale, boolean hinted) {
+        return Fonts.getRenderer("pingfang_sc_regular.ttf", size, rasterScale, hinted);
+    }
+
     /**
      * 苹方合成粗体。
      *
@@ -44,12 +48,24 @@ public final class FontPresets {
         return Fonts.getRenderer("Poppins-Regular.ttf", size);
     }
 
+    public static FontRenderer poppinsRegular(float size, float rasterScale) {
+        return Fonts.getRenderer("Poppins-Regular.ttf", size, rasterScale, true);
+    }
+
     public static FontRenderer poppinsMedium(float size) {
         return Fonts.getRenderer("Poppins-Medium.ttf", size);
     }
 
+    public static FontRenderer poppinsMedium(float size, float rasterScale) {
+        return Fonts.getRenderer("Poppins-Medium.ttf", size, rasterScale, true);
+    }
+
     public static FontRenderer poppinsBold(float size) {
         return Fonts.getRenderer("Poppins-Bold.ttf", size);
+    }
+
+    public static FontRenderer poppinsBold(float size, float rasterScale) {
+        return Fonts.getRenderer("Poppins-Bold.ttf", size, rasterScale, true);
     }
 
     public static FontRenderer niloreIcon(float size) {

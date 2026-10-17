@@ -8,6 +8,7 @@ import client.nilore.gui.nilore.NiloreTheme.Palette;
 import client.nilore.render.DrawContext;
 import client.nilore.render.FontPresets;
 import client.nilore.render.FontRenderer;
+import client.nilore.render.Fonts;
 import client.nilore.render.GlHelper;
 import client.nilore.render.GlyphMetrics;
 import client.nilore.render.Paint;
@@ -40,11 +41,11 @@ private enum Face {
         this.rasterAscent = rasterAscent;
     }
 
-    FontRenderer of(float size) {
+    FontRenderer of(float size, float rasterScale) {
         return switch (this) {
-            case REGULAR -> FontPresets.poppinsRegular(size);
-            case MEDIUM -> FontPresets.poppinsMedium(size);
-            case BOLD -> FontPresets.poppinsBold(size);
+            case REGULAR -> FontPresets.poppinsRegular(size, rasterScale);
+            case MEDIUM -> FontPresets.poppinsMedium(size, rasterScale);
+            case BOLD -> FontPresets.poppinsBold(size, rasterScale);
         };
     }
     }
@@ -78,10 +79,10 @@ private enum Face {
     public record Menu(Rect bounds, float reveal, List<MenuOption> options) {
     }
 
-    public record Frame(Viewport viewport, float opacity, float openingScale, Palette palette, boolean dark,
-                        String navLabel, List<Nav> nav, Editor search, String listTitle, List<Note> notes,
-                        float listScroll, float listMax, Detail detail, float detailScroll, float detailMax,
-                        Menu menu, float mouseX, float mouseY) {
+    public record Frame(Viewport viewport, float opacity, float openingScale, float selectionY, Palette palette,
+                        boolean dark, String navLabel, List<Nav> nav, Editor search, String listTitle,
+                        List<Note> notes, float listScroll, float listMax, Detail detail, float detailScroll,
+                        float detailMax, Menu menu, float mouseX, float mouseY) {
     }
 
     private NiloreRenderer() {
@@ -98,14 +99,14 @@ private enum Face {
 
             float screenScale = viewport.scale() * frame.openingScale();
             Clipper clip = new Clipper(viewport, frame.openingScale());
-            Surface surface = new Surface(dc, clip, palette, frame.opacity(), frame.dark());
+            Surface surface = new Surface(dc, clip, palette, frame.opacity(), frame.dark(),
+                    Fonts.deviceScale(viewport.scale()));
 
-            // Frosted backdrop, then the window's own drop shadow and translucent fill.
+            // Frosted backdrop, then the window's translucent fill (no drop shadow behind it).
             Rect screenWindow = viewport.screen(WINDOW, frame.openingScale());
             RenderUtil.drawBlurredRect(gg.pose(), screenWindow.x(), screenWindow.y(), screenWindow.width(),
                     screenWindow.height(), RADIUS * screenScale, Math.max(6f, 32f * screenScale),
                     Math.min(1f, frame.opacity()), 0xFF000000);
-            surface.shadow(WINDOW, RADIUS, palette.shadow, 30, 90);
             surface.rounded(WINDOW, RADIUS, palette.window);
 
             // Panes: only the two outer edges keep the window's rounded corners.
@@ -185,13 +186,15 @@ private enum Face {
         private final Palette palette;
         private final float globalAlpha;
         private final boolean dark;
+        private final float rasterScale;
 
-        Surface(DrawContext dc, Clipper clip, Palette palette, float globalAlpha, boolean dark) {
+        Surface(DrawContext dc, Clipper clip, Palette palette, float globalAlpha, boolean dark, float rasterScale) {
             this.dc = dc;
             this.clip = clip;
             this.palette = palette;
             this.globalAlpha = globalAlpha;
             this.dark = dark;
+            this.rasterScale = rasterScale;
         }
 
         private int col(int color) {
@@ -216,7 +219,7 @@ private enum Face {
             if (value == null || value.isEmpty()) {
                 return;
             }
-            FontRenderer font = face.of(size);
+            FontRenderer font = face.of(size, this.rasterScale);
             String shown = maxWidth > 0 ? elide(value, font, maxWidth) : value;
             GlHelper.drawText(shown, x, textTop(face, font, size, centerY), font, col(color));
         }
@@ -225,7 +228,7 @@ private enum Face {
             if (value == null || value.isEmpty()) {
                 return;
             }
-            FontRenderer font = face.of(size);
+            FontRenderer font = face.of(size, this.rasterScale);
             String shown = maxWidth > 0 ? elide(value, font, maxWidth) : value;
             GlHelper.drawText(shown, right - GlHelper.getStringWidth(shown, font), textTop(face, font, size, centerY),
                     font, col(color));
@@ -235,7 +238,7 @@ private enum Face {
             if (value == null || value.isEmpty()) {
                 return;
             }
-            FontRenderer font = face.of(size);
+            FontRenderer font = face.of(size, this.rasterScale);
             String shown = maxWidth > 0 ? elide(value, font, maxWidth) : value;
             GlHelper.drawText(shown, centerX - GlHelper.getStringWidth(shown, font) / 2f,
                     textTop(face, font, size, centerY), font, col(color));
@@ -377,18 +380,18 @@ private enum Face {
 
             text(frame.navLabel(), SIDE_PAD_X + NAV_LABEL_PAD_X, NAV_LABEL_CENTER, Face.BOLD,
                     SZ_SMALL, palette.secondary, SIDEBAR_W - 40);
+            rounded(new Rect(SIDE_PAD_X, frame.selectionY(), SIDEBAR_W - SIDE_PAD_X * 2, NAV_H),
+                    NAV_RADIUS, palette.accentSoft);
             for (int i = 0; i < frame.nav().size(); i++) {
                 Nav nav = frame.nav().get(i);
                 Rect bounds = navItem(i);
-                if (nav.active()) {
-                    rounded(bounds, NAV_RADIUS, palette.accentSoft);
-                } else if (nav.hovered()) {
+                if (nav.hovered() && !nav.active()) {
                     rounded(bounds, NAV_RADIUS, palette.navHover);
                 }
                 float centerY = bounds.y() + bounds.height() / 2f;
                 icon(nav.icon(), bounds.x() + NAV_PAD + NAV_ICON / 2f, centerY, 19, palette.text);
                 text(nav.label(), bounds.x() + NAV_PAD + NAV_ICON + NAV_ICON_GAP, centerY,
-                        nav.active() ? Face.BOLD : Face.REGULAR, SZ_NAV, palette.text,
+                        Face.REGULAR, SZ_NAV, palette.text,
                         bounds.width() - NAV_PAD * 2 - NAV_ICON - NAV_ICON_GAP - 26);
                 String count = Integer.toString(nav.count());
                 textRight(count, bounds.right() - NAV_PAD, centerY, Face.REGULAR, SZ_COUNT, palette.secondary,
@@ -414,7 +417,7 @@ private enum Face {
                 text(editor.value(), textX, cy, Face.REGULAR, SZ_BODY, palette.text, textMax);
             }
             if (editor.focused() && System.nanoTime() / 500_000_000 % 2 == 0) {
-                FontRenderer font = Face.REGULAR.of(SZ_BODY);
+                FontRenderer font = Face.REGULAR.of(SZ_BODY, this.rasterScale);
                 float caret = textX + GlHelper.getStringWidth(editor.value(), font) + 1.5f;
                 stroke(caret, cy - 8, caret, cy + 8, 1.4f, palette.blue);
             }
@@ -426,9 +429,8 @@ private enum Face {
                         SZ_LABEL, palette.secondary, LIST_W - 40);
                 return;
             }
-            text(frame.listTitle(), LIST_CONTENT_X + GROUP_TITLE_PAD_X,
-                    LIST_TOP + LIST_PAD_TOP + 8 + 7, Face.MEDIUM, SZ_SMALL, palette.tertiary,
-                    LIST_CONTENT_W - GROUP_TITLE_PAD_X * 2);
+            text(frame.listTitle(), LIST_CONTENT_X + GROUP_TITLE_PAD_X, LIST_GROUP_TITLE_CENTER,
+                    Face.MEDIUM, SZ_GROUP, palette.secondary, LIST_CONTENT_W - GROUP_TITLE_PAD_X * 2);
             for (Note note : frame.notes()) {
                 Rect bounds = note.bounds();
                 if (bounds.bottom() < LIST_TOP || bounds.y() > HEIGHT) {
@@ -461,7 +463,7 @@ private enum Face {
                 float header = group.title().isEmpty() ? 0 : GROUP_TITLE_LINE + GROUP_TITLE_GAP;
                 if (header > 0) {
                     text(group.title(), GROUP_X + GROUP_TITLE_GAP, group.bounds().y() + GROUP_TITLE_LINE / 2f,
-                            Face.BOLD, SZ_SMALL, palette.secondary, GROUP_W - GROUP_TITLE_GAP * 2);
+                            Face.BOLD, SZ_GROUP, palette.secondary, GROUP_W - GROUP_TITLE_GAP * 2);
                 }
                 Rect card = new Rect(group.bounds().x(), group.bounds().y() + header, GROUP_W,
                         group.bounds().height() - header);
@@ -504,7 +506,7 @@ private enum Face {
                         textRight(row.value(), contentRight, bounds.y() + COL_PAD_TOP + ROW_LABEL_H / 2f,
                                 Face.REGULAR, SZ_BODY, palette.blue, row.valueBox().width());
                         if (System.nanoTime() / 500_000_000 % 2 == 0) {
-                            FontRenderer font = Face.REGULAR.of(SZ_BODY);
+                            FontRenderer font = Face.REGULAR.of(SZ_BODY, this.rasterScale);
                             float caret = contentRight - GlHelper.getStringWidth(row.value(), font) - 2f;
                             stroke(caret, bounds.y() + COL_PAD_TOP + 2, caret,
                                     bounds.y() + COL_PAD_TOP + ROW_LABEL_H - 2, 1.4f, palette.blue);
@@ -527,7 +529,7 @@ private enum Face {
                     rounded(row.control(), SELECT_RADIUS, row.editing() ? 0x24FF3B30 : palette.field);
                     textCenter(row.value(), row.control().x() + row.control().width() / 2f, centerY,
                             row.editing() ? Face.BOLD : Face.REGULAR, SZ_BODY,
-                            row.editing() ? palette.red : palette.text, row.control().width() - 10);
+                            row.editing() ? palette.red : palette.text, row.control().width() - 20);
                 }
             }
         }

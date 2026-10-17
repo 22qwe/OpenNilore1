@@ -34,11 +34,11 @@ public class MusicPlayerHud extends HudElement {
     private float titleScrollOffset = 0;
     private long titleScrollTimestamp = 0;
 
-    private final NumberSetting bgAlphaSetting = new NumberSetting("Bg Alpha", 120, 0, 255, 1);
+    private final NumberSetting bgAlphaSetting = new NumberSetting("Bg Alpha", 70, 0, 255, 1);
     private final ModeSetting styleSetting = new ModeSetting("Style", "Simple", "Material3").withDefault("Simple");
-    private final BooleanSetting glowSetting = new BooleanSetting("Glow", false);
-    private final NumberSetting glowRadiusSetting = new NumberSetting("Glow Radius", 12, 4, 40, 1);
-    private final NumberSetting glowAlphaSetting = new NumberSetting("Glow Alpha", 120, 0, 255, 1);
+    private final BooleanSetting glowSetting = new BooleanSetting("Glow", true);
+    private final NumberSetting glowRadiusSetting = new NumberSetting("Glow Radius", 20, 4, 40, 1);
+    private final NumberSetting glowAlphaSetting = new NumberSetting("Glow Alpha", 90, 0, 255, 1);
 
     private static final float SIMPLE_ART_SIZE = 32;
     private static final float SIMPLE_GAP = 8;

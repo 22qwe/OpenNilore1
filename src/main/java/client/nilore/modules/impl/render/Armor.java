@@ -19,9 +19,9 @@ extends HudElement {
     private static final float MIN_VISIBLE_EDGE = 4.0f;
 
     private final BooleanSetting backgroundSetting = new BooleanSetting("Background", true);
-    private final NumberSetting bgAlphaSetting = new NumberSetting("Bg Alpha", 70, 0, 255, 1);
+    private final NumberSetting bgAlphaSetting = new NumberSetting("Bg Alpha", 128, 0, 255, 1);
     private final BooleanSetting glowSetting = new BooleanSetting("Glow", false);
-    private final NumberSetting glowRadiusSetting = new NumberSetting("Glow Radius", 12, 4, 40, 1);
+    private final NumberSetting glowRadiusSetting = new NumberSetting("Glow Radius", 14, 4, 40, 1);
     private final NumberSetting glowAlphaSetting = new NumberSetting("Glow Alpha", 120, 0, 255, 1);
     private final Paint bgPaint = new Paint();
 

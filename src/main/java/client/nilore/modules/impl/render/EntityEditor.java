@@ -13,8 +13,8 @@ public class EntityEditor extends Module {
     private final ModeSetting targetSetting = new ModeSetting("Target", "Pig", "Cow", "Zombie", "Creeper").withDefault("Pig");
     private final BooleanSetting ignoreSelf = new BooleanSetting("Ignore Self", true);
     private final BooleanSetting betterItemView = new BooleanSetting("Better Item View", true,() -> this.allEntity.getValue());
-    private final BooleanSetting allEntity = new BooleanSetting("AllEntity", false);
-    private final BooleanSetting excludeDrops = new BooleanSetting("Exclude Drops", true, () -> this.allEntity.getValue());
+    private final BooleanSetting allEntity = new BooleanSetting("AllEntity", true);
+    private final BooleanSetting excludeDrops = new BooleanSetting("Exclude Drops", false, () -> this.allEntity.getValue());
 
     public EntityEditor() {
         super("EntityEditor", Category.RENDER);

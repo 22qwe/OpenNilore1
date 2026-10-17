@@ -19,7 +19,7 @@ extends Module {
     public static TargetStrafe INSTANCE;
     private final Timer collisionTimer = new Timer();
     private final BooleanSetting smartStrafe = new BooleanSetting("Jump Key Only", true);
-    private final NumberSetting range = new NumberSetting("Range", 0.5f, 0.1f, 2.0f, 0.1f);
+    private final NumberSetting range = new NumberSetting("Range", 0.5, 0.1f, 2.0f, 0.1f);
     private final NumberSetting switchDelay = new NumberSetting("Switch Delay", 1000, 100, 5000, 100);
     public static int strafeDirectionSign;
     public static Entity strafeTarget;

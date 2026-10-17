@@ -26,7 +26,7 @@ import client.nilore.event.EventTarget;
 public class AntiBots
 extends Module {
     public static AntiBots INSTANCE;
-    private final NumberSetting newPlayerTimeout = new NumberSetting("Respawn Time", 2500.0, 0.0, 10000.0, 100.0);
+    private final NumberSetting newPlayerTimeout = new NumberSetting("Respawn Time", 2500.2, 0.0, 10000.0, 100.0);
     private final BooleanSetting debug = new BooleanSetting("Debug", true);
     private static final Map<UUID, String> suspectNames;
     private static final Map<Integer, String> confirmedBotNames;

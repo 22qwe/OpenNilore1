@@ -22,7 +22,7 @@ public class SpeedModule extends Module {
 
     public SpeedModule() {
         super("Speed", Category.MOVEMENT);
-        mode = new ModeSetting("Mode", "OnGround", "Motion").withDefault("OnGround");
+        mode = new ModeSetting("Mode", "OnGround", "Motion").withDefault("Motion");
         activeMode = modes.get(0);
         activeMode.setActive(true);
         modes.forEach(speedMode -> getSettings().addAll(speedMode.getValues()));

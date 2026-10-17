@@ -5,69 +5,60 @@ package client.nilore.gui.nilore;
  */
 public final class NiloreLayout {
     public static final float WIDTH = 1360, HEIGHT = 860, RADIUS = 22;
-    public static final float SIDEBAR_W = 220, LIST_W = 780, DETAIL_W = 360;
+    public static final float SIDEBAR_W = 250, LIST_W = 750, DETAIL_W = 360;
     public static final float LIST_X = SIDEBAR_W;
     public static final float DETAIL_X = SIDEBAR_W + LIST_W;
 
     public static final Rect WINDOW = new Rect(0, 0, WIDTH, HEIGHT);
 
-/**
- * Window scale relative to the fitted size. Glyphs share the canvas transform, so shrinking the panel
- * would shrink the type with it; {@link #size(float)} divides by this factor to hand the loss back,
- * which keeps every glyph the same size on screen while the panel itself gets smaller.
- */
-public static final float WINDOW_SCALE = .7f;
-
-/**
- * Per-size type scale. Both ends of the ramp were measured on the same screenshot: an 18px label has
- * to land on 30px (1.667x) while a 58px heading only reaches 70px (1.207x). Sizes in between are
- * interpolated so the ramp stays smooth instead of stepping.
- */
-public static float typeScale(float css) {
-    float small = 1.667f, large = 1.207f;
-    if (css <= 13f) {
-        return small;
-    }
-    if (css >= 26f) {
-        return large;
-    }
-    return large + (small - large) * (26f - css) / 13f;
-}
+    /**
+     * Window scale relative to the fitted size.
+     *
+     * <p>0.8 reproduces the reference (apple.html: {@code width: min(1360px, 70vw)}, {@code height:
+     * min(860px, 78vh)}): at 1920x1080 with GUI scale 2 the fit factor is .609, so the panel lands
+     * at .487 and covers 1326x838 physical px - 69% of the width and 78% of the height, the same
+     * fraction as the reference. Everything inside, type included, then scales as one block.
+     */
+    public static final float WINDOW_SCALE = .8f;
 
     /**
-     * Calibrated so a label matches the Neverlose settings panel exactly: that panel is 600 GUI px
-     * wide with an 11.5 GUI px label, a ratio of 1.92%. This design is 1360 wide, so the nominal
-     * size below is pulled back to reproduce the same proportion.
+     * Line heights from the reference stylesheet. Text blocks are stacked with line boxes the way a
+     * browser does it, instead of measuring cap+descender ink: the line box (line-height x
+     * font-size) is what decides where the following line starts.
      */
-    private static final float WIDTH_COMPENSATION = .8f;
-    /** Breathing room added to line boxes that hold nothing but text. */
-    private static final float LINE_PAD = 2f;
-    /** Tallest cap and deepest descender across the three weights, measured from the outlines. */
-    public static final float FONT_CAP = .702f, FONT_DESC = .275f;
+    private static final float LINE_DEFAULT = 1.2f, LINE_NOTE = 1.25f, LINE_DOC_TITLE = 1.15f,
+            LINE_DOC_SUB = 1.3f;
+
+    /**
+     * Visual size multiplier on top of the reference's CSS font sizes.
+     *
+     * <p>Line heights are derived from the type sizes, so note rows, column rows and the doc head
+     * grow with the text and keep their breathing room. Only rows whose height is pinned by a
+     * control (the 53px switch row, the 52px select row) keep their height, so their padding gives
+     * up roughly 8-10% at 1.15 - still far from the cramped look the old 1.8x scale produced.
+     *
+     * <p>This scales type only; the panel footprint is unchanged. To zoom everything (type and
+     * panel together, breathing exactly preserved) change {@link #WINDOW_SCALE} instead.
+     */
+    private static final float TYPE_SCALE = 1.3f;
 
     /**
      * Type sizes, held here rather than in the renderer because the row heights below are derived
-     * from them. Each is a CSS pixel size doubled - the {@code FontRenderer} size
-     * argument renders at about half its value - then scaled, divided back out of
-     * {@link #WINDOW_SCALE} and rounded to a whole point, since AWT can only grid-fit a glyph at an
-     * integral size and a fractional one silently loses hinting, which is what makes text look rough.
+     * from them. Every size is the CSS font-size doubled - the {@code FontRenderer} size argument
+     * renders at about half its value - and rounded to a whole point, since AWT can only grid-fit a
+     * glyph at an integral size.
      */
-    public static final float SZ_SMALL = size(11), SZ_COUNT = size(12), SZ_BODY = size(13),
-            SZ_LABEL = size(14), SZ_BRAND = size(14), SZ_NAV = size(14), SZ_TITLE = size(15),
+    public static final float SZ_SMALL = size(11), SZ_COUNT = size(12), SZ_GROUP = size(12), SZ_BODY = size(13),
+            SZ_LABEL = size(14), SZ_BRAND = size(17), SZ_NAV = size(14), SZ_TITLE = size(15),
             SZ_DOC_TITLE = size(26);
 
     private static float size(float css) {
-        return Math.round(2 * css * typeScale(css) * WIDTH_COMPENSATION / WINDOW_SCALE);
+        return Math.round(2 * css * TYPE_SCALE);
     }
 
-    /** Cap height of one line, which is what {@code text()} centres on. */
-    public static float lineCap(float sizeArgument) {
-        return sizeArgument / 2f * FONT_CAP;
-    }
-
-    /** Cap-top to descender-bottom for one line, the space a label actually needs. */
-    public static float lineInk(float sizeArgument) {
-        return sizeArgument / 2f * (FONT_CAP + FONT_DESC);
+    /** Height one line of text occupies in CSS: line-height x font-size. */
+    public static float lineBox(float sizeArgument, float lineHeight) {
+        return sizeArgument / 2f * lineHeight;
     }
 
     // sidebar
@@ -78,12 +69,14 @@ public static float typeScale(float css) {
     public static final float BRAND_TEXT_X = SIDE_PAD_X + BRAND_PAD_X;
     public static final float BRAND_CENTER_Y = SIDE_PAD_Y + BRAND_PAD_TOP + BRAND_ROW / 2f;
     public static final float NAV_TOP = SIDE_PAD_Y + BRAND_H + SIDE_GAP;
-    public static final float NAV_LABEL_LINE = Math.max(13.2f, lineInk(SZ_SMALL) + LINE_PAD),
+    /** .side-label { padding: 0 10px 6px } */
+    public static final float NAV_LABEL_LINE = lineBox(SZ_SMALL, LINE_DEFAULT),
             NAV_LABEL_H = NAV_LABEL_LINE + 6;
-    public static final float NAV_LABEL_CENTER = NAV_TOP + NAV_LABEL_LINE / 2f;
+    public static final float NAV_LABEL_CENTER = NAV_TOP + NAV_LABEL_LINE / 2f - 2f;
     public static final float NAV_LABEL_PAD_X = 10;
     public static final float NAV_START = NAV_TOP + NAV_LABEL_H;
-    public static final float NAV_H = 34, NAV_RADIUS = 9, NAV_PAD = 9, NAV_ICON = 22, NAV_ICON_GAP = 9;
+    public static final float NAV_H = 38, NAV_GAP = 4, NAV_RADIUS = 10, NAV_PAD = 9, NAV_ICON = 22,
+            NAV_ICON_GAP = 9;
 
     // list pane
     public static final float SEARCH_PAD_TOP = 14, SEARCH_PAD_X = 20, SEARCH_PAD_BOTTOM = 10, SEARCH_H = 36;
@@ -95,10 +88,16 @@ public static float typeScale(float css) {
     public static final float LIST_PAD_X = 8, LIST_PAD_TOP = 4, LIST_PAD_BOTTOM = 18;
     public static final float LIST_CONTENT_X = LIST_X + LIST_PAD_X;
     public static final float LIST_CONTENT_W = LIST_W - LIST_PAD_X * 2;
-    public static final float GROUP_TITLE_H = 30, GROUP_TITLE_PAD_X = 12;
-    public static final float NOTE_PAD_Y = 13, NOTE_SUB_GAP = 6;
-    public static final float NOTE_TITLE_INK = lineInk(SZ_TITLE), NOTE_SUB_INK = lineInk(SZ_BODY);
-    public static final float NOTE_TEXT_H = NOTE_TITLE_INK + NOTE_SUB_GAP + NOTE_SUB_INK;
+    /** .list-group-title { padding: 8px 12px 6px; font-size: 12px } */
+    public static final float LIST_GROUP_PAD_TOP = 8, LIST_GROUP_PAD_BOTTOM = 6, GROUP_TITLE_PAD_X = 12;
+    public static final float GROUP_TITLE_LINE = lineBox(SZ_GROUP, LINE_DEFAULT),
+            GROUP_TITLE_H = LIST_GROUP_PAD_TOP + GROUP_TITLE_LINE + LIST_GROUP_PAD_BOTTOM,
+            LIST_GROUP_TITLE_CENTER = LIST_TOP + LIST_PAD_TOP + LIST_GROUP_PAD_TOP + GROUP_TITLE_LINE / 2f;
+    /** .note-title / .note-desc { line-height: 1.25 }, .note-desc { margin-top: 4px } */
+    public static final float NOTE_PAD_Y = 13, NOTE_SUB_GAP = 4;
+    public static final float NOTE_TITLE_LINE = lineBox(SZ_TITLE, LINE_NOTE),
+            NOTE_SUB_LINE = lineBox(SZ_BODY, LINE_NOTE);
+    public static final float NOTE_TEXT_H = NOTE_TITLE_LINE + NOTE_SUB_GAP + NOTE_SUB_LINE;
     public static final float NOTE_H = Math.max(65, NOTE_PAD_Y * 2 + NOTE_TEXT_H);
     public static final float NOTE_RADIUS = 10, NOTE_PAD_X = 12, NOTE_GAP = 12;
     public static final float SWITCH_W = 51, SWITCH_H = 31, SWITCH_KNOB = 27, SWITCH_PAD = 2;
@@ -108,20 +107,25 @@ public static float typeScale(float css) {
     // detail pane
     public static final float DETAIL_PAD_TOP = 16;
     public static final float DOC_PAD_X = 14, DOC_PAD_TOP = 6, DOC_PAD_BOTTOM = 16;
+    /** .doc-title { line-height: 1.15 }, .doc-sub { margin-top: 6px; line-height: 1.3 } */
     public static final float DOC_SUB_GAP = 6;
-    public static final float DOC_TITLE_INK = lineInk(SZ_DOC_TITLE), DOC_SUB_INK = lineInk(SZ_BODY);
-    public static final float DOC_TEXT_H = DOC_TITLE_INK + DOC_SUB_GAP + DOC_SUB_INK;
+    public static final float DOC_TITLE_LINE = lineBox(SZ_DOC_TITLE, LINE_DOC_TITLE),
+            DOC_SUB_LINE = lineBox(SZ_BODY, LINE_DOC_SUB);
+    public static final float DOC_TEXT_H = DOC_TITLE_LINE + DOC_SUB_GAP + DOC_SUB_LINE;
     public static final float DOC_H =
             Math.max(75, DOC_PAD_TOP + DOC_TEXT_H + DOC_PAD_BOTTOM);
     public static final float GROUP_MARGIN_X = 14, GROUP_MARGIN_BOTTOM = 20;
     public static final float GROUP_X = DETAIL_X + GROUP_MARGIN_X;
     public static final float GROUP_W = DETAIL_W - GROUP_MARGIN_X * 2;
-    public static final float GROUP_TITLE_LINE = Math.max(14, lineInk(SZ_SMALL) + LINE_PAD), GROUP_TITLE_GAP = 8;
+    /** .group-title { margin: 0 8px 8px } */
+    public static final float GROUP_TITLE_GAP = 8;
     public static final float GROUP_RADIUS = 14;
 
     public static final float ROW_PAD_X = 14, ROW_PAD_Y = 11, ROW_MIN_H = 48;
-    public static final float COL_PAD_TOP = 12, COL_PAD_BOTTOM = 14, COL_BLOCK_GAP = 10;
-    public static final float ROW_LABEL_H = lineInk(SZ_LABEL);
+    /** .setting-row.column { padding: 12px 14px 14px } - the control follows the label directly. */
+    public static final float COL_PAD_TOP = 12, COL_PAD_BOTTOM = 14, COL_BLOCK_GAP = 0;
+    /** .label-text { line-height: 1.2 } */
+    public static final float ROW_LABEL_H = lineBox(SZ_LABEL, LINE_DEFAULT);
     public static final float ROW_SWITCH_H =
             Math.max(ROW_PAD_Y * 2 + SWITCH_H, Math.max(ROW_MIN_H, ROW_LABEL_H + ROW_PAD_Y * 2));
     public static final float ROW_SELECT_H =
@@ -131,9 +135,9 @@ public static float typeScale(float css) {
     public static final float SLIDER_H = 28, SLIDER_TRACK = 4, SLIDER_KNOB = 20;
     public static final float ROW_SLIDER_H =
             COL_PAD_TOP + ROW_LABEL_H + COL_BLOCK_GAP + SLIDER_H + COL_PAD_BOTTOM;
+    /** .segmented { height: 30px; padding: 2px; gap: 2px }, .seg-btn { height: 26px } */
     public static final float SEGMENT_PAD = 2, SEGMENT_GAP = 2;
-    public static final float SEGMENTED_H =
-            Math.max(30, lineInk(SZ_BODY) + SEGMENT_PAD * 2 + LINE_PAD);
+    public static final float SEGMENTED_H = 30;
     public static final float SEGMENT_RADIUS = 9, SEGMENT_BTN_RADIUS = 7;
     public static final float ROW_SEGMENTED_H =
             COL_PAD_TOP + ROW_LABEL_H + COL_BLOCK_GAP + SEGMENTED_H + COL_PAD_BOTTOM;
@@ -204,7 +208,7 @@ public static float typeScale(float css) {
     }
 
     public static Rect navItem(int index) {
-        return new Rect(SIDE_PAD_X, NAV_START + index * NAV_H, SIDEBAR_W - SIDE_PAD_X * 2, NAV_H);
+        return new Rect(SIDE_PAD_X, NAV_START + index * (NAV_H + NAV_GAP), SIDEBAR_W - SIDE_PAD_X * 2, NAV_H);
     }
 
     public static Rect searchBox() {
@@ -222,15 +226,16 @@ public static float typeScale(float css) {
     }
 
     /**
-     * Centres of the two lines of a list row. The whole text block is centred against the
-     * row, not each line against the padding, which is what keeps the title level with the switch.
+     * Cap centres of the two lines of a list row. The whole text block is centred against the row
+     * (the reference's {@code align-items: center}) and each line centres its cap inside its own
+     * line box, which is where the browser puts it.
      */
     public static float noteTitleY(Rect row) {
-        return row.y() + (row.height() - NOTE_TEXT_H) / 2f + lineCap(SZ_TITLE);
+        return row.y() + (row.height() - NOTE_TEXT_H) / 2f + NOTE_TITLE_LINE / 2f;
     }
 
     public static float noteSubY(Rect row) {
-        return row.y() + (row.height() - NOTE_TEXT_H) / 2f + NOTE_TITLE_INK + NOTE_SUB_GAP + lineCap(SZ_BODY);
+        return row.y() + (row.height() - NOTE_TEXT_H) / 2f + NOTE_TITLE_LINE + NOTE_SUB_GAP + NOTE_SUB_LINE / 2f;
     }
 
     public static Rect docHead() {
@@ -238,11 +243,11 @@ public static float typeScale(float css) {
     }
 
     public static float docTitleY(Rect head) {
-        return head.y() + (head.height() - DOC_TEXT_H) / 2f + lineCap(SZ_DOC_TITLE);
+        return head.y() + (head.height() - DOC_TEXT_H) / 2f + DOC_TITLE_LINE / 2f;
     }
 
     public static float docSubY(Rect head) {
-        return head.y() + (head.height() - DOC_TEXT_H) / 2f + DOC_TITLE_INK + DOC_SUB_GAP + lineCap(SZ_BODY);
+        return head.y() + (head.height() - DOC_TEXT_H) / 2f + DOC_TITLE_LINE + DOC_SUB_GAP + DOC_SUB_LINE / 2f;
     }
 
     public static Rect docSwitch() {

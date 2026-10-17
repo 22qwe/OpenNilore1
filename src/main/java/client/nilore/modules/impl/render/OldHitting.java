@@ -13,12 +13,12 @@ import client.nilore.settings.impl.NumberSetting;
 public class OldHitting
 extends Module {
     private final ModeSetting animationModeSetting = new ModeSetting("Animation", "Vanilla", "Leaked", "Slide", "NewPushDown").withDefault("Vanilla");
-    private final NumberSetting sizeSetting = new NumberSetting("Size", 1.0, 0.1, 3.0, 0.1);
-    private final NumberSetting speedSetting = new NumberSetting("Speed", 1.0, 0.1, 5.0, 0.1);
-    private final NumberSetting yOffsetSetting = new NumberSetting("Y-Offset", 0.0, -1.0, 1.0, 0.1);
-    private final NumberSetting handPosXSetting = new NumberSetting("Hand-X", 0.0, -1.0, 1.0, 0.01, () -> this.animationModeSetting.is("NewPushDown"));
-    private final NumberSetting handPosYSetting = new NumberSetting("Hand-Y", 0.0, -1.0, 1.0, 0.01, () -> this.animationModeSetting.is("NewPushDown"));
-    private final NumberSetting handPosZSetting = new NumberSetting("Hand-Z", 0.0, -1.0, 1.0, 0.01, () -> this.animationModeSetting.is("NewPushDown"));
+    private final NumberSetting sizeSetting = new NumberSetting("Size", 1, 0.1, 3.0, 0.1);
+    private final NumberSetting speedSetting = new NumberSetting("Speed", 1, 0.1, 5.0, 0.1);
+    private final NumberSetting yOffsetSetting = new NumberSetting("Y-Offset", 0, -1.0, 1.0, 0.1);
+    private final NumberSetting handPosXSetting = new NumberSetting("Hand-X", 0, -1.0, 1.0, 0.01, () -> this.animationModeSetting.is("NewPushDown"));
+    private final NumberSetting handPosYSetting = new NumberSetting("Hand-Y", 0, -1.0, 1.0, 0.01, () -> this.animationModeSetting.is("NewPushDown"));
+    private final NumberSetting handPosZSetting = new NumberSetting("Hand-Z", 0, -1.0, 1.0, 0.01, () -> this.animationModeSetting.is("NewPushDown"));
     public static OldHitting INSTANCE;
 
     public OldHitting() {

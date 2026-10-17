@@ -19,6 +19,7 @@ import client.nilore.render.Paint;
 import client.nilore.render.Rectangle;
 import client.nilore.render.Renderer;
 import client.nilore.render.RoundedRectangle;
+import client.nilore.settings.SettingVisibility;
 import client.nilore.settings.impl.BooleanSetting;
 import client.nilore.settings.impl.ModeSetting;
 import client.nilore.settings.impl.NumberSetting;
@@ -124,9 +125,9 @@ public class ModuleListHud extends HudElement {
     private static final float MIN_VISIBLE_EDGE = 0.0f;
     private static final float DEFAULT_ROW_HEIGHT = 15f;
     private static final float DEFAULT_PADDING_X = 3f;
-    private static final float DEFAULT_PADDING_Y = 3.5f;
-    private static final float DEFAULT_ROW_SPACING = 0.0f;
-    private static final float DEFAULT_RADIUS = 2f;
+    private static final float DEFAULT_PADDING_Y = 7f;
+    private static final float DEFAULT_ROW_SPACING = 0f;
+    private static final float DEFAULT_RADIUS = 4f;
     private static final float SLIDE_DISTANCE = 18.0f;
 
     // Layout settings
@@ -164,6 +165,12 @@ public class ModuleListHud extends HudElement {
     private NumberSetting rainbowSaturation;
     private NumberSetting rainbowBrightness;
     private NumberSetting rainbowOffset;
+    private NumberSetting customColor1R;
+    private NumberSetting customColor1G;
+    private NumberSetting customColor1B;
+    private NumberSetting customColor2R;
+    private NumberSetting customColor2G;
+    private NumberSetting customColor2B;
     private ModeSetting fontMode;
 
     // Font glow (fixed)
@@ -192,9 +199,9 @@ public class ModuleListHud extends HudElement {
         this.sideMode = new ModeSetting("Side Mode", "Auto", "Auto", "Left", "Right").withDefault("Auto");
         this.breakEnabled = new BooleanSetting("Break", false);
         this.showSuffix = new BooleanSetting("Show Suffix", true);
-        this.suffixColorEnabled = new BooleanSetting("Suffix Color", true);
+        this.suffixColorEnabled = new BooleanSetting("Suffix Color", false);
         this.suffixLowercaseEnabled = new BooleanSetting("Suffix Lowercase", false);
-        this.important = new BooleanSetting("Important", false);
+        this.important = new BooleanSetting("Important", true);
         this.paddingX = new NumberSetting("Padding X", DEFAULT_PADDING_X, 0.0f, 12.0f, 0.25f);
         this.paddingY = new NumberSetting("Padding Y", DEFAULT_PADDING_Y, 0.0f, 8.0f, 0.25f);
         this.rowHeight = new NumberSetting("Row Height", DEFAULT_ROW_HEIGHT, 9.0f, 24.0f, 0.25f);
@@ -203,30 +210,37 @@ public class ModuleListHud extends HudElement {
         // Background settings
         this.backgroundEnabled = new BooleanSetting("Background", true);
         this.backgroundRadius = new NumberSetting("Background Radius", DEFAULT_RADIUS, 0.0f, 10.0f, 0.25f);
-        this.backgroundAlpha = new NumberSetting("Background Alpha", 80.0f, 0.0f, 255.0f, 1.0f);
+        this.backgroundAlpha = new NumberSetting("Background Alpha", 88, 0.0f, 255.0f, 1.0f);
 
         // Glow settings
-        this.glowEnabled = new BooleanSetting("Glow", false);
-        this.glowRadius = new NumberSetting("Glow Radius", 12.0f, 4.0f, 40.0f, 1.0f);
-        this.glowAlpha = new NumberSetting("Glow Alpha", 120.0f, 0.0f, 255.0f, 1.0f);
+        this.glowEnabled = new BooleanSetting("Glow", true);
+        this.glowRadius = new NumberSetting("Glow Radius", 7, 4.0f, 40.0f, 1.0f);
+        this.glowAlpha = new NumberSetting("Glow Alpha", 100, 0.0f, 255.0f, 1.0f);
 
         // Side line settings
         this.sideLineEnabled = new BooleanSetting("Side Line", false);
         this.sideLineMode = new ModeSetting("Side Line Mode", "Auto", "Auto", "Left", "Right").withDefault("Auto");
-        this.sideLineWidth = new NumberSetting("Side Line Width", 0.8f, 0.5f, 5.0f, 0.25f);
+        this.sideLineWidth = new NumberSetting("Side Line Width", 1, 0.5f, 5.0f, 0.25f);
 
         // Text color settings
         this.useClientColor = new BooleanSetting("Use Client Color", false);
         this.textColorMode = new ModeSetting("Text Color Mode", "Gradient", "Solid").withDefault("Gradient");
-        this.gradientTheme = new ModeSetting("Gradient Theme", "Rainbow",
-                "Rainbow", "Aurora", "Sunset", "Ocean", "Cotton Candy", "Lavender", "Peach", "Mint", "Cyberpunk", "Drift")
-                .withDefault("Cotton Candy");
-        this.rainbowSpeed = new NumberSetting("Rainbow Speed", 5.0f, 1.0f, 240.0f, 1.0f);
-        this.rainbowSaturation = new NumberSetting("Rainbow Saturation", 90.0f, 0.0f, 100.0f, 1.0f);
-        this.rainbowBrightness = new NumberSetting("Rainbow Brightness", 100.0f, 10.0f, 100.0f, 1.0f);
-        this.rainbowOffset = new NumberSetting("Rainbow Offset", 85.0f, 0.0f, 90.0f, 1.0f);
+        this.gradientTheme = new ModeSetting("Gradient Theme", "Rainbow", "Aurora", "Sunset", "Ocean",
+                "Cotton Candy", "Lavender", "Peach", "Mint", "Cyberpunk", "Drift", "Custom")
+                .withDefault("Drift");
+        this.rainbowSpeed = new NumberSetting("Rainbow Speed", 5, 1.0f, 240.0f, 1.0f);
+        this.rainbowSaturation = new NumberSetting("Rainbow Saturation", 90, 0.0f, 100.0f, 1.0f);
+        this.rainbowBrightness = new NumberSetting("Rainbow Brightness", 100, 10.0f, 100.0f, 1.0f);
+        this.rainbowOffset = new NumberSetting("Rainbow Offset", 77, 0.0f, 90.0f, 1.0f);
+        SettingVisibility customOnly = () -> this.gradientTheme.is("Custom");
+        this.customColor1R = new NumberSetting("Custom Color 1 R", 255, 0.0f, 255.0f, 1.0f, customOnly);
+        this.customColor1G = new NumberSetting("Custom Color 1 G", 214, 0.0f, 255.0f, 1.0f, customOnly);
+        this.customColor1B = new NumberSetting("Custom Color 1 B", 10, 0.0f, 255.0f, 1.0f, customOnly);
+        this.customColor2R = new NumberSetting("Custom Color 2 R", 10, 0.0f, 255.0f, 1.0f, customOnly);
+        this.customColor2G = new NumberSetting("Custom Color 2 G", 132, 0.0f, 255.0f, 1.0f, customOnly);
+        this.customColor2B = new NumberSetting("Custom Color 2 B", 255, 0.0f, 255.0f, 1.0f, customOnly);
         this.fontMode = new ModeSetting("Font", "Minecraft", "Minecraft", "PingFang", "Product Sans")
-                .withDefault("PingFang");
+                .withDefault("Product Sans");
 
         // Register all settings
         this.registerSetting(sideMode, breakEnabled, showSuffix, suffixColorEnabled, suffixLowercaseEnabled,
@@ -234,7 +248,8 @@ public class ModuleListHud extends HudElement {
                 paddingX, paddingY, rowHeight, rowSpacing, backgroundEnabled, backgroundRadius, backgroundAlpha,
                 sideLineEnabled, sideLineMode, sideLineWidth,
                 glowEnabled, glowRadius, glowAlpha,
-                useClientColor, fontMode, textColorMode, gradientTheme, rainbowSpeed, rainbowSaturation, rainbowBrightness, rainbowOffset);
+                useClientColor, fontMode, textColorMode, gradientTheme, rainbowSpeed, rainbowSaturation, rainbowBrightness, rainbowOffset,
+                customColor1R, customColor1G, customColor1B, customColor2R, customColor2G, customColor2B);
     }
 
     private List<AnimatedRow> updateRows() {
@@ -607,8 +622,13 @@ public class ModuleListHud extends HudElement {
             return ColorUtil.getRainbowColor(speed, offset).getRGB();
         }
         if ("Gradient".equals(mode)) {
-            GradientTheme theme = GradientTheme.fromName(this.gradientTheme.getValue());
             double position = (double) ((System.currentTimeMillis() / (long) speed + (long) offset) % 1000L) / 1000.0;
+            if ("Custom".equals(this.gradientTheme.getValue())) {
+                // Ping-pong between the two colours so the loop has no hard jump at the wrap.
+                double progress = 1.0 - Math.abs(2.0 * position - 1.0);
+                return ColorUtil.interpolateColor(this.customColor(1), this.customColor(2), progress);
+            }
+            GradientTheme theme = GradientTheme.fromName(this.gradientTheme.getValue());
             return theme.getColorAt(position, saturation, brightness).getRGB();
         }
         if ("Solid".equals(mode)) {
@@ -617,6 +637,15 @@ public class ModuleListHud extends HudElement {
         }
         // Default to rainbow
         return ColorUtil.getRainbowColor(speed, offset).getRGB();
+    }
+
+    /** Packed ARGB for one of the two custom gradient colours. */
+    private int customColor(int index) {
+        NumberSetting red = index == 1 ? this.customColor1R : this.customColor2R;
+        NumberSetting green = index == 1 ? this.customColor1G : this.customColor2G;
+        NumberSetting blue = index == 1 ? this.customColor1B : this.customColor2B;
+        return 0xFF000000 | (red.getValue().intValue() & 0xFF) << 16
+                | (green.getValue().intValue() & 0xFF) << 8 | (blue.getValue().intValue() & 0xFF);
     }
 
     private Alignment resolveAlignment(float x, float width) {

@@ -14,21 +14,21 @@ public class MusicPlayer extends Module {
 
     private boolean internalVolumeChange = false;
 
-    private final BooleanSetting melodify = new BooleanSetting("Melodify", false) {
+    private final BooleanSetting melodify = new BooleanSetting("Melodify", true) {
         @Override
         public void onChanged(Boolean oldValue, Boolean newValue) {
             MusicPlayer.AUDIO_PLAYER.setMelodifyEnabled(newValue);
         }
     };
 
-    private final NumberSetting crossfade = new NumberSetting("Crossfade", 12, 4, 20, 1) {
+    private final NumberSetting crossfade = new NumberSetting("Crossfade", 14, 4, 20, 1) {
         @Override
         public void onChanged(Number oldValue, Number newValue) {
             MusicPlayer.AUDIO_PLAYER.setCrossfadeMs(newValue.intValue() * 1000L);
         }
     };
 
-    private final NumberSetting volume = new NumberSetting("Volume", 90, 0, 100, 1) {
+    private final NumberSetting volume = new NumberSetting("Volume", 73, 0, 100, 1) {
         @Override
         public void onChanged(Number oldValue, Number newValue) {
             if (internalVolumeChange) return;

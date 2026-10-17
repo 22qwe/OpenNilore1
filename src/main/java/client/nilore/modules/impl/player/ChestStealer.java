@@ -63,8 +63,8 @@ extends Module {
 
     public static ChestStealer INSTANCE;
     private static final Timer actionTimer;
-    private final NumberSetting clickDelaySetting = new NumberSetting("Delay", 110, 0, 1000, 10);
-    private final NumberSetting openDelaySetting = new NumberSetting("Open Delay", 2, 0, 10, 1);
+    private final NumberSetting clickDelaySetting = new NumberSetting("Delay", 140, 0, 1000, 10);
+    private final NumberSetting openDelaySetting = new NumberSetting("Open Delay", 3, 0, 10, 1);
     private final BooleanSetting chestSetting = new BooleanSetting("Chest", true);
     private final BooleanSetting enderChestSetting = new BooleanSetting("Ender Chest", false);
     private final BooleanSetting furnaceSetting = new BooleanSetting("Furnace", true);
@@ -73,7 +73,10 @@ extends Module {
     private final BooleanSetting onlyBestSetting = new BooleanSetting("Only Best", true);
     private final BooleanSetting randomClickSetting = new BooleanSetting("Random Click", true);
     private final BooleanSetting smartStealingSetting = new BooleanSetting("Smart Stealing", true);
-    private final BooleanSetting dangerSetting = new BooleanSetting("Danger", false);
+    // Reference parity: EdNaven only exposes Danger in its Instant mode. We express Instant as
+    // Delay == 0, so the switch is hidden for every paced (non-instant) delay.
+    private final BooleanSetting dangerSetting = new BooleanSetting("Danger", false,
+            () -> this.clickDelaySetting.getValue().doubleValue() <= 0.0);
     private static final Timer stealTimer;
     private static final Timer openTimer;
     private final Random random = new Random();
@@ -196,7 +199,9 @@ extends Module {
 
     private void stealFromChest(ChestMenu chestMenu) {
         ++this.accessCount;
-        if (this.smartStealingSetting.getValue() && this.accessCount > 1) {
+        if (this.isInstantMode()) {
+            this.clickInstant(chestMenu, this.getStealableChestSlots(chestMenu));
+        } else if (this.smartStealingSetting.getValue() && this.accessCount > 1) {
             this.stealSmartMode(chestMenu);
         } else {
             this.stealRandomMode(chestMenu);
@@ -452,6 +457,10 @@ extends Module {
                 return;
             }
             List<Integer> stealableSlots = this.getStealableContainerSlots(container);
+            if (this.isInstantMode()) {
+                this.clickInstant(furnaceMenu, stealableSlots);
+                return;
+            }
             if (this.randomClickSetting.getValue() && !stealableSlots.isEmpty() && this.accessCount > 1) {
                 int randomSlot = stealableSlots.get(this.random.nextInt(stealableSlots.size()));
                 this.schedulePendingClick(furnaceMenu, randomSlot);
@@ -479,6 +488,10 @@ extends Module {
             return;
         }
         List<Integer> stealableSlots = this.getStealableContainerSlots(container);
+        if (this.isInstantMode()) {
+            this.clickInstant(brewingStandMenu, stealableSlots);
+            return;
+        }
         if (this.randomClickSetting.getValue() && !stealableSlots.isEmpty() && this.accessCount > 1) {
             int randomSlot = stealableSlots.get(this.random.nextInt(stealableSlots.size()));
             this.schedulePendingClick(brewingStandMenu, randomSlot);
@@ -533,15 +546,33 @@ extends Module {
         }
     }
 
+    private boolean isInstantMode() {
+        return this.clickDelaySetting.getValue().doubleValue() <= 0.0;
+    }
+
+    /**
+     * Reference parity with EdNaven's Instant branch: every stealable slot is clicked in the same
+     * tick with QUICK_MOVE + button 1, the Danger payload/pong pair is emitted per click, and the
+     * container is closed right away. Paced (non-instant) clicks never emit those two packets,
+     * exactly like the reference's Normal branch.
+     */
+    private void clickInstant(AbstractContainerMenu menu, List<Integer> slots) {
+        clickDelayMs = this.clickDelaySetting.getValue().longValue();
+        for (int slot : slots) {
+            if (this.dangerSetting.getValue() && mc.getConnection() != null) {
+                PacketUtil.sendQueued(new ServerboundCustomPayloadPacket(
+                        ResourceLocation.tryBuild("minecraft", "test"), new FriendlyByteBuf(Unpooled.buffer())));
+                PacketUtil.sendQueued(new ServerboundPongPacket(Integer.MAX_VALUE));
+            }
+            mc.gameMode.handleInventoryMouseClick(menu.containerId, slot, 1, ClickType.QUICK_MOVE, mc.player);
+        }
+        mc.player.closeContainer();
+    }
+
     private void executePendingClick() {
         if (this.pendingMenu != null && this.pendingSlot >= 0) {
             clickDelayMs = this.clickDelaySetting.getValue().longValue();
             if (this.pendingSlot < this.pendingMenu.slots.size()) {
-                if (this.dangerSetting.getValue() && mc.getConnection() != null) {
-                    PacketUtil.sendQueued(new ServerboundCustomPayloadPacket(
-                            ResourceLocation.tryBuild("minecraft", "test"), new FriendlyByteBuf(Unpooled.buffer())));
-                    PacketUtil.sendQueued(new ServerboundPongPacket(Integer.MAX_VALUE));
-                }
                 mc.gameMode.handleInventoryMouseClick(
                         this.pendingMenu.containerId, this.pendingSlot,
                         0, ClickType.QUICK_MOVE, mc.player);

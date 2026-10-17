@@ -44,7 +44,9 @@ public class ChatComponentPatch {
             return;
         }
         int guiHeight = ClientBase.mc.getWindow().getGuiScaledHeight();
-        double adjusted = mouseY - BetterChat.LINE_DROP * scale - betterChat.textYOffset();
+        double lineSpacing = ClientBase.mc.options.chatLineSpacing().get();
+        double baselineOffset = Math.round(-8.0D * (lineSpacing + 1.0D) + 4.0D * lineSpacing);
+        double adjusted = mouseY - BetterChat.LINE_DROP * scale - betterChat.textYOffset() - baselineOffset * scale;
         callbackInfo.cancel();
         callbackInfo.result = ((double) guiHeight - adjusted - 40.0D) / (scale * (double) lineHeight);
     }

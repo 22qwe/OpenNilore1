@@ -43,13 +43,13 @@ public class BlockIn extends Module {
     public final NumberSetting range = new NumberSetting("Range", 4.5, 1.0, 6.0, 0.1);
     public final NumberSetting cooldown = new NumberSetting("Cooldown", 1, 0, 20, 1);
     public final BooleanSetting rotation = new BooleanSetting("Rotation", true);
-    public final BooleanSetting smooth = new BooleanSetting("Smooth", false, () -> this.rotation.getValue());
-    public final NumberSetting rotationTicks = new NumberSetting("Rotation Ticks", 3, 1, 6, 1, () -> this.rotation.getValue() && this.smooth.getValue());
+    public final BooleanSetting smooth = new BooleanSetting("Smooth", true, () -> this.rotation.getValue());
+    public final NumberSetting rotationTicks = new NumberSetting("Rotation Ticks", 2, 1, 6, 1, () -> this.rotation.getValue() && this.smooth.getValue());
     public final BooleanSetting roofSupport = new BooleanSetting("Roof Support", true);
     public final BooleanSetting diagonalSupport = new BooleanSetting("Diagonal Support", true);
     public final BooleanSetting pillarSupport = new BooleanSetting("Pillar Support", true);
     public final BooleanSetting useJump = new BooleanSetting("Use Jump", true);
-    public final NumberSetting jumpTicks = new NumberSetting("Jump Ticks", 2, 1, 8, 1);
+    public final NumberSetting jumpTicks = new NumberSetting("Jump Ticks", 1, 1, 8, 1);
     public final BooleanSetting debug = new BooleanSetting("Debug", false);
 
 

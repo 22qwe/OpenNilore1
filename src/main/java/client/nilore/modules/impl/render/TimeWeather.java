@@ -13,8 +13,8 @@ import client.nilore.event.EventTarget;
 public class TimeWeather extends Module {
 
     private final ModeSetting timeMode = new ModeSetting("Time", "Day", "Sunset", "Night", "Custom", "Vanilla")
-            .withDefault("Vanilla");
-    private final NumberSetting customTime = new NumberSetting("Custom Time", 6000, 0, 24000, 100,
+            .withDefault("Custom");
+    private final NumberSetting customTime = new NumberSetting("Custom Time", 15000, 0, 24000, 100,
             () -> timeMode.is("Custom"));
 
     private final ModeSetting weatherMode = new ModeSetting("Weather", "Clear", "Rain", "Thunder", "Vanilla")

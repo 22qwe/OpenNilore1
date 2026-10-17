@@ -54,7 +54,6 @@ import client.nilore.utils.game.MotionSimulator;
 import client.nilore.utils.game.MovementUtil;
 import client.nilore.utils.game.RayTraceUtil;
 import client.nilore.utils.game.RotationUtil;
-import client.nilore.utils.misc.ChatUtil;
 import client.nilore.utils.misc.PacketUtil;
 import client.nilore.utils.render.RenderUtil;
 
@@ -66,27 +65,26 @@ import client.nilore.event.EventTarget;
 public class Scaffold extends Module {
     public static Scaffold INSTANCE;
 
-    public final ModeSetting mode = new ModeSetting("Mode", "Normal", "Telly Bridge", "Keep Y").withDefault("Telly Bridge");
+    public final ModeSetting mode = new ModeSetting("Mode", "Normal", "Telly Bridge", "Keep Y").withDefault("Normal");
     public final NumberSetting tellyAirTicks = new NumberSetting("AirTicks", 1, 0, 3, 0.1, () -> this.mode.is("Telly Bridge"));
-    public final NumberSetting tellyPlaceDelay = new NumberSetting("PlaceDelay", 0, 0, 20, 1, () -> this.mode.is("Telly Bridge"));
-    public final BooleanSetting eagle = new BooleanSetting("Eagle", true, () -> this.mode.is("Normal"));
+    public final NumberSetting tellyPlaceDelay = new NumberSetting("PlaceDelay", 1, 0, 20, 1, () -> this.mode.is("Telly Bridge"));
+    public final BooleanSetting eagle = new BooleanSetting("Eagle", false, () -> this.mode.is("Normal"));
     public final BooleanSetting renderItemSpoof = new BooleanSetting("Render Item Spoof", true);
-    public final BooleanSetting clutch = new BooleanSetting("Clutch", true);
+    public final BooleanSetting clutch = new BooleanSetting("Clutch", false);
     public final NumberSetting clutchDepth = new NumberSetting("Clutch Depth", 4, 2, 5, 1, this.clutch::getValue);
     public final ModeSetting swingMode = new ModeSetting("Swing", "Both", "Server").withDefault("Both");
     public final BooleanSetting blockCounter = new BooleanSetting("Block Counter", true);
-    public final ModeSetting blockCounterStyle = new ModeSetting("Block Counter Style", "Amunix", "Modern", "Naven", "Nitro").withDefault("Modern");
-    public final NumberSetting nitroOffsetY = new NumberSetting("Nitro Offset", 20, 0, 220, 5, () -> this.blockCounterStyle.is("Nitro"));
+    public final ModeSetting blockCounterStyle = new ModeSetting("Block Counter Style", "Amunix", "Modern", "Naven", "Nitro").withDefault("Nitro");
+    public final NumberSetting nitroOffsetY = new NumberSetting("Nitro Offset", 90, 0, 220, 5, () -> this.blockCounterStyle.is("Nitro"));
     public final BooleanSetting onTickRot = new BooleanSetting("OnTickRot", false);
-    public final NumberSetting rotationSpeed = new NumberSetting("Rotation Speed", 180, 0, 360, 5, () -> !this.syncRotSpeed.getValue());
-    public final NumberSetting jitter = new NumberSetting("Jitter", 1.0, 0.0, 5.0, 0.1);
-    public final BooleanSetting syncRotSpeed = new BooleanSetting("Sync RotSpeed", true);
-    public final NumberSetting turnSpeed = new NumberSetting("Turn Speed", 180, 0, 360, 5, this.syncRotSpeed::getValue);
-    public final NumberSetting returnSpeed = new NumberSetting("Return Speed", 180, 0, 360, 5, this.syncRotSpeed::getValue);
+    public final NumberSetting rotationSpeed = new NumberSetting("Rotation Speed", 153.9, 0, 360, 5, () -> !this.syncRotSpeed.getValue());
+    public final NumberSetting jitter = new NumberSetting("Jitter", 2.5, 0.0, 5.0, 0.1);
+    public final BooleanSetting syncRotSpeed = new BooleanSetting("Sync RotSpeed", false);
+    public final NumberSetting turnSpeed = new NumberSetting("Turn Speed", 73.4, 0, 360, 5, this.syncRotSpeed::getValue);
+    public final NumberSetting returnSpeed = new NumberSetting("Return Speed", 101.8, 0, 360, 5, this.syncRotSpeed::getValue);
     public final ModeSetting switchMode = new ModeSetting("Switch Mode", "Normal", "Hotbar", "Full").withDefault("Hotbar");
-    public final BooleanSetting bpsLimit = new BooleanSetting("Limit BPS", false);
-    public final NumberSetting bps = new NumberSetting("BPS", 10.0, 2.0, 10.0, 0.1, this.bpsLimit::getValue);
-    public final BooleanSetting print_log = new BooleanSetting("Log",false);
+    public final BooleanSetting bpsLimit = new BooleanSetting("Limit BPS", true);
+    public final NumberSetting bps = new NumberSetting("BPS", 3.5, 2.0, 10.0, 0.1, this.bpsLimit::getValue);
     public final BooleanSetting mark = new BooleanSetting("Mark", true);
     public final NumberSetting markRed = new NumberSetting("Mark Red", 255, 0, 255, 1, () -> this.mark.getValue());
     public final NumberSetting markGreen = new NumberSetting("Mark Green", 55, 0, 255, 1, () -> this.mark.getValue());
@@ -97,8 +95,6 @@ public class Scaffold extends Module {
     public Rotation lastRots = new Rotation();
     /** 转头平滑(惯性+波动), 与 KillAura 共用同一实现。 */
     private final RotationSmoother rotSmoother = new RotationSmoother(new Random());
-    /** 调试: 最近一次目标旋转来自哪个分支(配合 Log 设置定位大增量来源)。 */
-    private String aimBranch = "none";
     public int targetYLevel = -1;
     public int velocityDelay = 0;
 
@@ -308,18 +304,15 @@ public class Scaffold extends Module {
         if (this.currentPlacement == null) {
             ClientBase.delayPackets.clear();
         } else if (this.clutch.getValue() && (!this.canBuildNow || this.velocityDelay > 0) && this.rotationDelay <= 8) {
-            if (print_log.getValue()) ChatUtil.print(true, "§6Skipped 1Tick§6.");
             boolean useC06 = this.onTickRot.getValue() || !this.canBuildNow;
             if (useC06) {
                 // C06 模式：不转头，让 onPreMotion 中的 c06Place 处理放置
-                this.aimBranch = "C06-real-cam";
                 this.rots.setYawPitch(mc.player.getYRot(), mc.player.getXRot());
                 RotationHandler.setTargetRotation(this.rots);
-                logLargeDelta(this.rots);
                 this.rotationDelay++;
             } else {
-                Vec3 targetVec = getFaceCenter(this.currentPlacement.position, this.currentPlacement.facing);
                 Vec3 predictedEye = new Vec3(mc.player.getX() + mc.player.getDeltaMovement().x, mc.player.getY() + mc.player.getEyeHeight() + mc.player.getDeltaMovement().y, mc.player.getZ() + mc.player.getDeltaMovement().z);
+                Vec3 targetVec = faceAimPoint(this.currentPlacement.position, this.currentPlacement.facing, predictedEye);
                 Rotation rotationToBlock = RotationUtil.rotationFromPoints(targetVec.x, targetVec.y, targetVec.z, predictedEye.x, predictedEye.y, predictedEye.z);
                 Rotation previousTarget = RotationHandler.targetRotation;
                 this.rots.setYawPitch(rotationToBlock.getYaw(), rotationToBlock.getPitch());
@@ -351,9 +344,7 @@ public class Scaffold extends Module {
 
             // SkipTicks 结束后无论 onTickRot 设置如何，都发 C06 恢复服务端旋转追踪
             if (wasInRescue) {
-                this.aimBranch = "resume-jitter";
                 Rotation resumeRot = new Rotation(mc.player.getYRot() + rotationJitter(), mc.player.getXRot() + rotationJitter());
-                logLargeDelta(resumeRot);
                 mc.getConnection().send(new ServerboundMovePlayerPacket.PosRot(
                         mc.player.getX(), mc.player.getY(), mc.player.getZ(),
                         resumeRot.getYaw(), resumeRot.getPitch(),
@@ -363,9 +354,7 @@ public class Scaffold extends Module {
 
             if (this.onTickRot.getValue()) {
                 // OnTickRot: 不转头, 保持当前视角, 只靠 C06 发包欺骗
-                this.aimBranch = "C06-real-cam";
                 this.rots.setYawPitch(mc.player.getYRot(), mc.player.getXRot());
-                logLargeDelta(this.rots);
             } else {
                 this.calculateTargetRotation();
             }
@@ -696,7 +685,6 @@ public class Scaffold extends Module {
         float currentPitch = this.rots.getPitch();
 
         // 2. 理想 pitch 优先: 直线搭路时 75.5° 全程有效, 旋转恒定 = 最流畅状态。
-        this.aimBranch = "ideal-75.5";
         if (isRotationValidForPlacement(new Rotation(yaw, idealPitch))) {
             applyRotationWithSpeed(yaw, idealPitch);
             return;
@@ -705,14 +693,23 @@ public class Scaffold extends Module {
         // 3. 75.5 失效: 当前 pitch 仍能命中就原地不动 —— 不要在理想角和就近角之间来回
         //    横跳(调试证实 75.5↔83~88 每 tick 乒乓, 这就是"放一次甩一次"的直接原因),
         //    只在几何真正变化时移动。
-        this.aimBranch = "keep-current";
         if (isRotationValidForPlacement(new Rotation(yaw, currentPitch))) {
             applyRotationWithSpeed(yaw, currentPitch);
             return;
         }
 
+        // 3.5 直接瞄放置面上离眼睛最近的点: 构造上必然命中, 且旋转量比任何扫掠都小。
+        if (mc.player != null) {
+            Vec3 eye = mc.player.getEyePosition();
+            Rotation direct = RotationUtil.exactRotation(eye,
+                    faceAimPoint(this.currentPlacement.position, this.currentPlacement.facing, eye));
+            if (isRotationValidForPlacement(direct)) {
+                applyRotationWithSpeed(direct.getYaw(), direct.getPitch());
+                return;
+            }
+        }
+
         // 4. 当前 pitch 也失效: 从当前 pitch 双向外扩, 取最小修正步。
-        this.aimBranch = "nearest-from-current";
         Float nearest = findValidPitchNear(yaw, currentPitch);
         if (nearest != null) {
             applyRotationWithSpeed(yaw, nearest);
@@ -720,7 +717,6 @@ public class Scaffold extends Module {
         }
 
         // 5. 当前邻域彻底无解: 从理想角就近找, 把旋转拉回基准。
-        this.aimBranch = "nearest-to-ideal";
         Float towardIdeal = findValidPitchNear(yaw, idealPitch);
         if (towardIdeal != null) {
             applyRotationWithSpeed(yaw, towardIdeal);
@@ -728,7 +724,6 @@ public class Scaffold extends Module {
         }
 
         // 6. pitch 无解(yaw 偏了) -> yaw+pitch 全搜
-        this.aimBranch = "optimal-search";
         Rotation optimal = findOptimalRotation(yaw);
         if (optimal != null) {
             applyRotationWithSpeed(optimal.getYaw(), optimal.getPitch());
@@ -736,28 +731,7 @@ public class Scaffold extends Module {
         }
 
         // 7. 全部失败: 保持当前旋转。绝不明知 raytrace 无效还把 75.5 发出去。
-        this.aimBranch = "hold";
         applyRotationWithSpeed(yaw, currentPitch);
-    }
-
-    /**
-     * 调试: Log 设置开启时, 单 tick 转动超过 5° 就打印来源分支与放置目标,
-     * 用于定位 ACA "very high variance" 的大增量来源。
-     */
-    private void logLargeDelta(Rotation rotation) {
-        if (!print_log.getValue()) return;
-        Rotation prev = RotationHandler.prevRotation;
-        if (prev == null) return;
-        float dYaw = Math.abs(Mth.wrapDegrees(rotation.getYaw() - prev.getYaw()));
-        float dPitch = Math.abs(rotation.getPitch() - prev.getPitch());
-        float magnitude = (float) Math.hypot(dYaw, dPitch);
-        if (magnitude <= 5.0f) return;
-        String targetInfo = this.currentPlacement != null
-                ? this.currentPlacement.position.toShortString() + "@" + this.currentPlacement.facing
-                : "null";
-        ChatUtil.print(true, "§7[scaffold] " + this.aimBranch
-                + String.format(" Δ%.1f° (Δyaw %.1f Δpitch %.1f) target=%s",
-                magnitude, dYaw, dPitch, targetInfo));
     }
 
     private boolean isRotationValidForPlacement(Rotation rotation) {
@@ -857,7 +831,6 @@ public class Scaffold extends Module {
                     rotation.getYaw() + rotationJitter() * jitterScale,
                     Mth.clamp(rotation.getPitch() + rotationJitter() * jitterScale, -90.0f, 90.0f));
         }
-        logLargeDelta(rotation);
 
         this.rots.setYawPitch(rotation.getYaw(), rotation.getPitch());
         RotationHandler.setTargetRotation(this.rots);
@@ -902,22 +875,39 @@ public class Scaffold extends Module {
         if (mc.level == null || mc.player == null) return false;
         if (!(mc.level.getBlockState(pos).getBlock() instanceof AirBlock)) return false;
         Vec3 center = new Vec3(pos.getX() + 0.5, pos.getY() + 0.5f, pos.getZ() + 0.5);
+        BlockPos bestSupport = null;
+        Direction bestFace = null;
+        double bestDistance = Double.MAX_VALUE;
         for (Direction direction : Direction.values()) {
             Vec3 offsetCenter = center.add(new Vec3(
                     direction.getNormal().getX() * 0.5,
                     direction.getNormal().getY() * 0.5,
                     direction.getNormal().getZ() * 0.5));
             BlockPos offset = pos.offset(direction.getNormal());
-            if (mc.level.getBlockState(offset).entityCanStandOnFace(mc.level, offset, mc.player, direction)) {
-                Vec3 delta = offsetCenter.subtract(from);
-                if (delta.lengthSqr() <= 20.25
-                        && delta.normalize().dot(Vec3.atLowerCornerOf(direction.getNormal()).normalize()) >= 0.0) {
-                    this.currentPlacement = new PlacementTarget(new BlockPos(offset.getX(), offset.getY(), offset.getZ()), direction.getOpposite());
-                    return true;
-                }
+            if (!mc.level.getBlockState(offset).entityCanStandOnFace(mc.level, offset, mc.player, direction)) {
+                continue;
+            }
+            Vec3 delta = offsetCenter.subtract(from);
+            if (delta.lengthSqr() > 20.25
+                    || delta.normalize().dot(Vec3.atLowerCornerOf(direction.getNormal()).normalize()) < 0.0) {
+                continue;
+            }
+            // Rank by the face point the view will actually aim at rather than by the block
+            // centre: the nearest face means the shortest rotation and the cleanest click ray.
+            Direction face = direction.getOpposite();
+            double distance = faceAimPoint(offset, face, from).distanceToSqr(from);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestSupport = offset;
+                bestFace = face;
             }
         }
-        return false;
+        if (bestSupport == null) {
+            return false;
+        }
+        this.currentPlacement = new PlacementTarget(
+                new BlockPos(bestSupport.getX(), bestSupport.getY(), bestSupport.getZ()), bestFace);
+        return true;
     }
 
     private boolean hasPlaceableInHand() {
@@ -958,8 +948,8 @@ public class Scaffold extends Module {
         InteractionHand hand = this.placementHand();
 
         // 计算朝向放置面的旋转
-        Vec3 faceCenter = getFaceCenter(this.currentPlacement.position, facing);
-        Rotation targetRot = RotationUtil.exactRotation(mc.player.getEyePosition(), faceCenter);
+        Vec3 aim = faceAimPoint(this.currentPlacement.position, facing, mc.player.getEyePosition());
+        Rotation targetRot = RotationUtil.exactRotation(mc.player.getEyePosition(), aim);
 
         // 用即将发包的旋转做射线校验，打不中就不发
         if (!RayTraceUtil.canRayTrace(targetRot, facing, this.currentPlacement.position, true)) {
@@ -979,9 +969,7 @@ public class Scaffold extends Module {
         ));
 
         // 放置方块
-        BlockHitResult hit = new BlockHitResult(
-                getHitVec(this.currentPlacement.position, facing), facing,
-                this.currentPlacement.position, false);
+        BlockHitResult hit = new BlockHitResult(aim, facing, this.currentPlacement.position, false);
         InteractionResult result = mc.gameMode.useItemOn(mc.player, hand, hit);
 
         if (result == InteractionResult.SUCCESS) {
@@ -1008,11 +996,9 @@ public class Scaffold extends Module {
         // SkipTicks时每次放置前都发送对准目标方块面的C05. Fix By StarSky
         if (!this.canBuildNow && this.clutch.getValue() && !this.currentPlacement.position.equals(this.lastC05Position)) {
             this.lastC05Position = this.currentPlacement.position;
-            this.aimBranch = "c05-snap";
-            Vec3 c05Target = getFaceCenter(this.currentPlacement.position, this.currentPlacement.facing);
             Vec3 c05Eye = new Vec3(mc.player.getX() + mc.player.getDeltaMovement().x, mc.player.getY() + mc.player.getEyeHeight() + mc.player.getDeltaMovement().y, mc.player.getZ() + mc.player.getDeltaMovement().z);
+            Vec3 c05Target = faceAimPoint(this.currentPlacement.position, this.currentPlacement.facing, c05Eye);
             Rotation c05Rotation = RotationUtil.rotationFromPoints(c05Target.x, c05Target.y, c05Target.z, c05Eye.x, c05Eye.y, c05Eye.z);
-            logLargeDelta(c05Rotation);
             float yaw = c05Rotation.getYaw();
             if (yaw > -360.0f && yaw < 360.0f) {
                 yaw += 720.0f;
@@ -1028,7 +1014,9 @@ public class Scaffold extends Module {
         }
         if (!this.shouldBuild()) return;
         if (!this.isAimingAtPlacementFace()) return;
-        BlockHitResult hit = new BlockHitResult(getHitVec(this.currentPlacement.position, facing), facing, this.currentPlacement.position, false);
+        BlockHitResult hit = new BlockHitResult(
+                faceAimPoint(this.currentPlacement.position, facing, mc.player.getEyePosition()), facing,
+                this.currentPlacement.position, false);
         InteractionResult result = mc.gameMode.useItemOn(mc.player, hand, hit);
         if (result == InteractionResult.SUCCESS && !this.swingMode.is("Server")) {
             mc.player.swing(hand);
@@ -1055,6 +1043,24 @@ public class Scaffold extends Module {
             }
         }
         return false;
+    }
+
+    /**
+     * Point on the given face closest to the eye, inset from the edges.
+     *
+     * <p>Aiming at the face centre makes the rotation longer than it needs to be and, for a face
+     * seen at a steep angle, the ray can slip past the block. The nearest inset point is the
+     * shortest valid rotation and is the same point the click should report.
+     */
+    public static Vec3 faceAimPoint(BlockPos pos, Direction face, Vec3 eye) {
+        double inset = 0.15;
+        double x = face.getAxis() == Direction.Axis.X ? pos.getX() + 0.5 + face.getStepX() * 0.5
+                : Mth.clamp(eye.x, pos.getX() + inset, pos.getX() + 1.0 - inset);
+        double y = face.getAxis() == Direction.Axis.Y ? pos.getY() + 0.5 + face.getStepY() * 0.5
+                : Mth.clamp(eye.y, pos.getY() + inset, pos.getY() + 1.0 - inset);
+        double z = face.getAxis() == Direction.Axis.Z ? pos.getZ() + 0.5 + face.getStepZ() * 0.5
+                : Mth.clamp(eye.z, pos.getZ() + inset, pos.getZ() + 1.0 - inset);
+        return new Vec3(x, y, z);
     }
 
     public static Vec3 getFaceCenter(BlockPos pos, Direction direction) {

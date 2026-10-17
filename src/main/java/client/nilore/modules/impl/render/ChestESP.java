@@ -41,8 +41,8 @@ extends Module {
     private static final float[] openedChestColor;
     private static final float[] nitroChestColor;
     private static final float[] nitroOpenedChestColor;
-    private final BooleanSetting override = new BooleanSetting("Override", false);
-    private final ModeSetting style = new ModeSetting("Style", "Zen", "Nitro").withDefault("Zen");
+    private final BooleanSetting override = new BooleanSetting("Override", true);
+    private final ModeSetting style = new ModeSetting("Style", "Zen", "Nitro").withDefault("Nitro");
     private final Set<BlockPos> openedChestPositions = ConcurrentHashMap.newKeySet();
     private final List<AABB> renderBoundingBoxes = new CopyOnWriteArrayList<>();
     private static final String MODULE_NAME;

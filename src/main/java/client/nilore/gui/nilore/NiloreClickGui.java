@@ -1,6 +1,7 @@
 package client.nilore.gui.nilore;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import client.nilore.modules.Module;
 import client.nilore.modules.impl.render.ClickGuiModule;
 import client.nilore.render.FontPresets;
 import client.nilore.render.FontRenderer;
+import client.nilore.render.Fonts;
 import client.nilore.render.GlHelper;
 import client.nilore.render.Renderer;
 import client.nilore.settings.Setting;
@@ -53,6 +55,7 @@ public final class NiloreClickGui extends Screen {
     private final Motion windowMotion = new Motion(0, 22);
     private final Motion listMotion = new Motion(0, 28);
     private final Motion detailMotion = new Motion(0, 28);
+    private final Motion selectionMotion = new Motion(navItem(0).y(), 30);
 
     private Field search;
     private Viewport viewport;
@@ -81,6 +84,10 @@ public final class NiloreClickGui extends Screen {
 
     private static double now() {
         return System.nanoTime() / 1_000_000_000.0;
+    }
+
+    private float rasterScale() {
+        return Fonts.deviceScale(viewport == null ? 1f : viewport.scale());
     }
 
     @Override
@@ -170,7 +177,7 @@ public final class NiloreClickGui extends Screen {
     }
 
     private static String number(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
     private String keyLabel(Module module) {
@@ -254,8 +261,9 @@ public final class NiloreClickGui extends Screen {
         List<Row> rows = new ArrayList<>();
         Rect bindBounds = new Rect(GROUP_X, y, GROUP_W, ROW_SELECT_H);
         String label = keyLabel(module);
-        float bindWidth = Math.max(82, 22 + GlHelper.getStringWidth(label, FontPresets.poppinsRegular(
-                SZ_BODY)));
+        // .keybind { min-width: 82px; padding: 0 10px }
+        float bindWidth = Math.max(82, 20 + GlHelper.getStringWidth(label, FontPresets.poppinsRegular(
+                SZ_BODY, rasterScale())));
         Rect bindControl = new Rect(contentRight - bindWidth, y + (ROW_SELECT_H - 30) / 2f, bindWidth, 30);
         rows.add(new Row(Kind.KEYBIND, bindBounds, bindControl, EMPTY, "Bind", label, 0,
                 bindBounds.contains(mouseX, mouseY), module == binding, List.of()));
@@ -289,7 +297,7 @@ public final class NiloreClickGui extends Screen {
                 Rect bounds = new Rect(GROUP_X, y, GROUP_W, ROW_SELECT_H);
                 hovered = bounds.contains(mouseX, mouseY);
                 float width = clamp(SELECT_PAD_LEFT + 19 + GlHelper.getStringWidth(value.getValue(),
-                        FontPresets.poppinsRegular(SZ_BODY)), SELECT_MIN_W, SELECT_MAX_W);
+                        FontPresets.poppinsRegular(SZ_BODY, rasterScale())), SELECT_MIN_W, SELECT_MAX_W);
                 Rect control = new Rect(contentRight - width, y + (ROW_SELECT_H - SELECT_H) / 2f, width, SELECT_H);
                 rows.add(new Row(Kind.SELECT, bounds, control, EMPTY, setting.getName(), value.getValue(), 0,
                         hovered, menu != null && menu.setting == value && menu.open, List.of()));
@@ -375,6 +383,7 @@ public final class NiloreClickGui extends Screen {
         }
         boolean dark = dark();
         NiloreRenderer.Frame frame = new NiloreRenderer.Frame(viewport, opacity, openingScale,
+                selectionMotion.to(navItem(navigation).y(), time),
                 NiloreTheme.of(dark), dark, NAV_LABEL, nav, new Editor(search.value, search.focused), listTitle(),
                 notes, listScroll, listMax, detail, detailScroll, detailMax, menuFrame(time), mouseX, mouseY);
         Renderer.renderConsumer(dc -> NiloreRenderer.paint(dc, gg, frame));
@@ -457,7 +466,8 @@ public final class NiloreClickGui extends Screen {
         }
         for (int i = rowRefs.size() - 1; i >= 0; i--) {
             RowRef ref = rowRefs.get(i);
-            if (!ref.control.contains(this.mouseX, this.mouseY)) {
+            if (!ref.control.contains(this.mouseX, this.mouseY)
+                    && !ref.valueBox.contains(this.mouseX, this.mouseY)) {
                 continue;
             }
             switch (ref.kind) {
@@ -585,7 +595,7 @@ public final class NiloreClickGui extends Screen {
     }
 
     private int cursorAt(Rect box) {
-        FontRenderer font = FontPresets.poppinsRegular(SZ_BODY);
+        FontRenderer font = FontPresets.poppinsRegular(SZ_BODY, rasterScale());
         float left = box.x() + SEARCH_INNER_PAD + SEARCH_ICON + SEARCH_ICON_GAP;
         float x = mouseX - left;
         String value = search.value;
@@ -698,7 +708,9 @@ public final class NiloreClickGui extends Screen {
         }
         int count = menu.setting.getModes().length;
         float width = Math.max(menu.anchor.width(), MENU_MIN_W);
-        float height = Math.min(280, count * MENU_OPTION_H + MENU_PAD * 2);
+        // Fit the whole option list. The old 280px cap silently hid everything past the eighth
+        // entry — Gradient Theme's "Drift"/"Custom" were unreachable.
+        float height = Math.min(HEIGHT - 16, count * MENU_OPTION_H + MENU_PAD * 2);
         float x = clamp(menu.anchor.x(), 8, WIDTH - width - 8);
         float y = menu.anchor.bottom() + 6;
         if (y + height > HEIGHT - 8) {

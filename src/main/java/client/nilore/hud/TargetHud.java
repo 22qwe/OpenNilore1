@@ -27,7 +27,7 @@ extends HudElement {
     public static final Map<String, AtomicInteger> playerHealthMap = new HashMap<>();
     private float lastHealth;
     private float healthDelta;
-    private final ModeSetting styleMode = new ModeSetting("Mode", "Round", "Rise","Moon","Simple","Naven","Exhibition").withDefault("Round");
+    private final ModeSetting styleMode = new ModeSetting("Mode", "Round", "Rise","Moon","Simple","Naven","Exhibition").withDefault("Simple");
 
     public TargetHud() {
         super("TargetHUD");

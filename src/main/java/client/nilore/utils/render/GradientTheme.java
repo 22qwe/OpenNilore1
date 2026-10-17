@@ -16,7 +16,9 @@ public enum GradientTheme {
     PEACH("Peach"),
     MINT("Mint"),
     CYBER("Cyberpunk"),
-    DRIFT("Drift");
+    DRIFT("Drift"),
+    /** Colours come from the owning element (no preset). */
+    CUSTOM("Custom");
 
     private final String displayName;
 
@@ -106,6 +108,7 @@ public enum GradientTheme {
                 {0.50f, 0.70f, 1.0f},  // Electric Blue
                 {0.85f, 0.75f, 1.0f},  // Back to Magenta
             };
+            case CUSTOM -> new float[0][];
             case DRIFT -> new float[][] {
                 {0.60f, 0.65f, 0.90f},  // Steel Blue
                 {0.65f, 0.55f, 0.95f},  // Cool Blue

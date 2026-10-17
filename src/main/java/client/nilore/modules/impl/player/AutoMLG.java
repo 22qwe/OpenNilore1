@@ -24,8 +24,8 @@ import client.nilore.event.EventTarget;
 public class AutoMLG
 extends Module {
     public static AutoMLG INSTANCE;
-    private final NumberSetting triggerDistanceSetting = new NumberSetting("Fall distance", 3.0f, 1.0f, 10.0f, 0.1f);
-    private final NumberSetting predictTicksSetting = new NumberSetting("Predict Ticks", 2.0f, 1.0f, 5.0f, 1.0f);
+    private final NumberSetting triggerDistanceSetting = new NumberSetting("Fall distance", 3, 1.0f, 10.0f, 0.1f);
+    private final NumberSetting predictTicksSetting = new NumberSetting("Predict Ticks", 2, 1.0f, 5.0f, 1.0f);
     private final BooleanSetting solidCheckSetting = new BooleanSetting("Solid check", true);
     private final BooleanSetting recoverySetting = new BooleanSetting("Recorvey", true);
     public Rotation targetRotation = null;

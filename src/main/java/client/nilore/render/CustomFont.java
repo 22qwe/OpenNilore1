@@ -76,7 +76,9 @@ implements Closeable {
     private final int pageSize;
     private final int charsPerPage;
     private final String preloadChars;
-    private int scale = 0;
+    private float scale = 1.0f;
+    private final float rasterScaleHint;
+    private final boolean hinted;
     private Font scaledFont;
     private int guiScaleCache = -1;
     private Future<Void> preloadFuture;
@@ -96,12 +98,19 @@ implements Closeable {
 
     public CustomFont(Font font, float fontSize, int pageSize, int charsPerPage, @Nullable String preloadChars,
                       boolean bold, @Nullable Font[] fallbacks) {
+        this(font, fontSize, pageSize, charsPerPage, preloadChars, bold, fallbacks, 0f, true);
+    }
+
+    public CustomFont(Font font, float fontSize, int pageSize, int charsPerPage, @Nullable String preloadChars,
+                      boolean bold, @Nullable Font[] fallbacks, float rasterScale, boolean hinted) {
         this.bold = bold;
         this.fallbackFonts = fallbacks == null ? new Font[0] : fallbacks;
         this.fontSize = fontSize;
         this.pageSize = pageSize;
         this.charsPerPage = charsPerPage;
         this.preloadChars = preloadChars;
+        this.rasterScaleHint = Math.max(0f, rasterScale);
+        this.hinted = hinted;
         this.fontMetrics = new FontMetricsImpl(font);
         this.initFont(font, fontSize);
     }
@@ -128,6 +137,11 @@ implements Closeable {
         this(font, fontSize, DEFAULT_PAGE_SIZE, 5, null, bold, fallbacks);
     }
 
+    public CustomFont(Font font, float fontSize, boolean bold, @Nullable Font[] fallbacks,
+                      float rasterScale, boolean hinted) {
+        this(font, fontSize, DEFAULT_PAGE_SIZE, 5, null, bold, fallbacks, rasterScale, hinted);
+    }
+
     private static int alignToPageBoundary(int value, int pageSize) {
         return pageSize * (int)Math.floor((double)value / (double)pageSize);
     }
@@ -147,6 +161,9 @@ implements Closeable {
     }
 
     private void checkGuiScaleChanged() {
+        if (this.rasterScaleHint > 0f) {
+            return;
+        }
         int guiScale = (int)ClientBase.mc.getWindow().getGuiScale();
         if (guiScale != this.guiScaleCache) {
             this.close();
@@ -160,7 +177,9 @@ implements Closeable {
         }
         this.initialized = true;
         this.guiScaleCache = (int)ClientBase.mc.getWindow().getGuiScale();
-        this.scale = Math.max(2, this.guiScaleCache * 2);
+        this.scale = this.rasterScaleHint > 0f
+                ? Math.max(0.25f, this.rasterScaleHint)
+                : Math.max(0.25f, (float) this.guiScaleCache);
         // 屏幕上想粗大约 0.5px，但字形是按 scale 倍光栅化进纹理的，
         // 所以偏移量要按同一个倍率折算成纹理像素。
         this.boldPx = this.bold ? Math.max(1, Math.round(this.scale * 0.5f)) : 0;
@@ -188,7 +207,7 @@ implements Closeable {
 
     private GlyphPage createGlyphPage(char startChar, char endChar) {
         GlyphPage glyphPage = new GlyphPage(startChar, endChar, this.scaledFont, CustomFont.getTempResourceLocation(),
-                this.charsPerPage, this.boldPx, this.scaledFallbacks);
+                this.charsPerPage, this.boldPx, this.scaledFallbacks, this.hinted);
         this.glyphPages.add(glyphPage);
         return glyphPage;
     }
@@ -225,7 +244,8 @@ implements Closeable {
     }
 
     public void drawStringWithShadow(PoseStack poseStack, String text, double x, double y, int color) {
-        this.drawStringColor(poseStack, text, (double)((float)x) + 0.5, (double)((float)y) + 0.5, SHADOW_COLOR);
+        double offset = this.hinted ? 1.0 / (double)this.scale : 0.5;
+        this.drawStringColor(poseStack, text, (double)((float)x) + offset, (double)((float)y) + offset, SHADOW_COLOR);
         this.drawString(poseStack, text, (float)x, (float)y, color);
     }
 
@@ -249,7 +269,7 @@ implements Closeable {
         float curG = baseG;
         float curB = baseB;
         poseStack.pushPose();
-        poseStack.translate(MathUtil.round(x, 1), MathUtil.round(--y, 1), 0.0);
+        poseStack.translate(this.snap(x), this.snap(--y), 0.0);
         poseStack.scale(1.0F / this.scale, 1.0F / this.scale, 1.0F);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -352,7 +372,7 @@ implements Closeable {
         float bottomB = (bottomColor & 0xFF) / 255.0f;
         float bottomA = (bottomColor >>> 24 & 0xFF) / 255.0f;
         poseStack.pushPose();
-        poseStack.translate(MathUtil.round(x, 1), MathUtil.round(--y, 1), 0.0);
+        poseStack.translate(this.snap(x), this.snap(--y), 0.0);
         poseStack.scale(1.0f / this.scale, 1.0f / this.scale, 1.0f);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -458,8 +478,13 @@ implements Closeable {
         return this.fontMetrics;
     }
 
-    public int getScale() {
+    public float getScale() {
         return this.scale;
+    }
+
+    private double snap(double value) {
+        return this.hinted ? (double) (Math.round(value * (double) this.scale) / (double) this.scale)
+                : MathUtil.round(value, 1);
     }
 
     public void close() {

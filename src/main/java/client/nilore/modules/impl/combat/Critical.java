@@ -26,9 +26,9 @@ public class Critical extends Module {
 
     public static volatile boolean stopAttack = false;
 
-    public final ModeSetting mode = new ModeSetting("Mode", "Grim", "SkipTicks", "Optimize").withDefault("Grim");
+    public final ModeSetting mode = new ModeSetting("Mode", "Grim", "SkipTicks", "Optimize").withDefault("Optimize");
 
-    public final NumberSetting skipTicksRange = new NumberSetting("SkipTicks Range", 3.0, 1.0, 6.0, 0.1,
+    public final NumberSetting skipTicksRange = new NumberSetting("SkipTicks Range", 2.4, 1.0, 6.0, 0.1,
             () -> this.mode.is("SkipTicks"));
 
     public final BooleanSetting autoJump = new BooleanSetting("Auto Jump", false);

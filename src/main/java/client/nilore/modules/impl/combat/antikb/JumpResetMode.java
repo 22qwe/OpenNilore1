@@ -3,6 +3,9 @@ package client.nilore.modules.impl.combat.antikb;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 import client.nilore.event.impl.DisconnectEvent;
 import client.nilore.event.impl.EntityRemoveEvent;
 import client.nilore.event.impl.GameTickEvent;
@@ -18,6 +21,7 @@ import client.nilore.modules.impl.combat.Backtrack;
 import client.nilore.modules.impl.combat.KillAura;
 import client.nilore.modules.impl.movement.Scaffold;
 import client.nilore.modules.impl.player.NoFall;
+import client.nilore.utils.game.RotationUtil;
 import client.nilore.utils.rotation.Rotation;
 import client.nilore.utils.rotation.RotationHandler;
 
@@ -169,6 +173,11 @@ public class JumpResetMode extends AntiKBMode {
             this.cancelJumpReset();
             return;
         }
+        if (this.shouldPredictJump(player)) {
+            isJumping = true;
+            this.jumpTicks = 1;
+            logger.info("[AntiKB] JumpReset predict jump tick={}", player.tickCount);
+        }
         if (this.jumpTicks > 0 && !Scaffold.INSTANCE.isEnabled()) {
             if (player.isOnFire()) {
                 this.resetState();
@@ -183,6 +192,32 @@ public class JumpResetMode extends AntiKBMode {
             boolean down = InputConstants.isKeyDown(mc.getWindow().getWindow(), mc.options.keyJump.getKey().getValue());
             mc.options.keyJump.setDown(down);
         }
+    }
+
+    /**
+     * Pre-emptive jump reset: the opponent's swing animation reaches us roughly one tick before the
+     * knockback packet does, so a fresh swing that is actually aimed at us is treated as a hit that
+     * lands next tick. The target comes from KillAura; the ray clip is a single AABB test, so this
+     * stays cheap on the tick path.
+     */
+    private boolean shouldPredictJump(LocalPlayer player) {
+        if (!AntiKB.INSTANCE.predict.getValue()) return false;
+        if (this.jumpTicks > 0 || Scaffold.INSTANCE.isEnabled()) return false;
+        if (!player.onGround()) return false;
+        // Fallback: damage already landed but no pre-jump / no target was found. isJumping keeps
+        // this to one jump per hurt window (it stays set until hurtTime clears).
+        if (!isJumping && player.hurtTime > 0) return true;
+        if (player.hurtTime > 0) return false;
+
+        KillAura aura = KillAura.INSTANCE;
+        Entity target = aura != null && aura.isEnabled() ? KillAura.target : null;
+        if (!(target instanceof LivingEntity living) || !living.isAlive()) return false;
+        // swingTime resets to ~0 when a new swing starts; only predict on a fresh animation.
+        if (!living.swinging || living.swingTime > 2) return false;
+
+        Vec3 eyePos = living.getEyePosition(1.0f);
+        Vec3 reachEnd = eyePos.add(living.getLookAngle().scale(RotationUtil.getReachLimit()));
+        return player.getBoundingBox().inflate(0.1).clip(eyePos, reachEnd).isPresent();
     }
 
     @Override

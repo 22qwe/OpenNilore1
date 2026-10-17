@@ -28,10 +28,10 @@ public class AutoOffHand extends Module {
 
     public enum ItemType { SNOWBALL, GAPPLE, NONE }
 
-    public final NumberSetting range = new NumberSetting("Range", 6.0, 1.0, 12.0, 0.5);
+    public final NumberSetting range = new NumberSetting("Range", 6, 1.0, 12.0, 0.5);
     public final BooleanSetting gapple = new BooleanSetting("Gapple", true);
     public final BooleanSetting snowball = new BooleanSetting("SnowBall", true);
-    public final NumberSetting health = new NumberSetting("Health", 10.0, 1.0, 20.0, 0.5);
+    public final NumberSetting health = new NumberSetting("Health", 10, 1.0, 20.0, 0.5);
     public final BooleanSetting revertOnRegen = new BooleanSetting("RevertOnRegen", true);
     private int equipCooldown = 0;
 

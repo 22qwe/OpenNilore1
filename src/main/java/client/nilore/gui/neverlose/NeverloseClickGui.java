@@ -1,6 +1,7 @@
 package client.nilore.gui.neverlose;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import client.nilore.modules.Category;
 import client.nilore.modules.Module;
 import client.nilore.render.FontPresets;
 import client.nilore.render.FontRenderer;
+import client.nilore.render.Fonts;
 import client.nilore.render.GlHelper;
 import client.nilore.render.Renderer;
 import client.nilore.settings.Setting;
@@ -67,6 +69,10 @@ public final class NeverloseClickGui extends Screen {
 
     private static double now() {
         return System.nanoTime() / 1_000_000_000.0;
+    }
+
+    private float rasterScale() {
+        return Fonts.deviceScale(viewport == null ? 1f : viewport.scale());
     }
 
     @Override
@@ -270,7 +276,7 @@ public final class NeverloseClickGui extends Screen {
     }
 
     private static String number(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
     // render
@@ -440,7 +446,7 @@ public final class NeverloseClickGui extends Screen {
     }
 
     private int cursorAt(Field field, Rect rect, float padding) {
-        FontRenderer font = FontPresets.poppinsRegular(24f);
+        FontRenderer font = FontPresets.poppinsRegular(24f, rasterScale());
         float x = mouseX - rect.x() - padding + editorOffset(field, rect, padding);
         String value = field.value;
         for (int index = 0; index < value.length(); ) {
@@ -455,11 +461,12 @@ public final class NeverloseClickGui extends Screen {
         return value.length();
     }
 
-    private static float editorOffset(Field field, Rect box, float padding) {
+    private float editorOffset(Field field, Rect box, float padding) {
         if (!field.focused) {
             return 0;
         }
-        float width = GlHelper.getStringWidth(field.value.substring(0, field.cursor), FontPresets.poppinsRegular(24f));
+        float width = GlHelper.getStringWidth(field.value.substring(0, field.cursor),
+                FontPresets.poppinsRegular(24f, rasterScale()));
         return Math.max(0, width - box.width() + padding + 18);
     }
 

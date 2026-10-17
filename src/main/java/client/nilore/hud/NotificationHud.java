@@ -67,18 +67,18 @@ public class NotificationHud extends HudElement {
     private static final int BAR_BG_COLOR = 0xFF3A3A3A;
     private static final int TEXT_COLOR = 0xFFFFFFFF;
 
-    private final NumberSetting margin = new NumberSetting("Margin", 8.0f, 0.0f, 100.0f, 1.0f);
-    private final NumberSetting duration = new NumberSetting("Duration (ms)", 800, 500, 10000, 100);
-    private final NumberSetting maxNotifications = new NumberSetting("Max Notifications", 7, 1, 10, 1);
+    private final NumberSetting margin = new NumberSetting("Margin", 18, 0.0f, 100.0f, 1.0f);
+    private final NumberSetting duration = new NumberSetting("Duration (ms)", 1200, 500, 10000, 100);
+    private final NumberSetting maxNotifications = new NumberSetting("Max Notifications", 6, 1, 10, 1);
     private final BooleanSetting needSound = new BooleanSetting("Sound", true);
     private final ModeSetting whichSound = new ModeSetting("Type", "Sigma", "Lever").withDefault("Lever");
-    private final ModeSetting style = new ModeSetting("Style", "Southside", "Simple", "Naven", "Akarin").withDefault("Southside");
+    private final ModeSetting style = new ModeSetting("Style", "Southside", "Simple", "Naven", "Akarin").withDefault("Akarin");
     private final NumberSetting navenTextXOff = new NumberSetting("Naven Text X Off", 7, 0, 20, 0.5f);
     private final NumberSetting navenTextYOff = new NumberSetting("Naven Text Y Off", 11.5, 0, 20, 0.5f);
     private final NumberSetting navenWidthPad = new NumberSetting("Naven Width Pad", 10, 0, 20, 1);
     private final NumberSetting navenCardH = new NumberSetting("Naven Card Height", 19, 12, 30, 1);
     private final NumberSetting navenRadius = new NumberSetting("Naven Radius", 6, 0, 10, 0.5f);
-    private final NumberSetting navenSlideMs = new NumberSetting("Naven Slide (ms)", 120, 20, 300, 10);
+    private final NumberSetting navenSlideMs = new NumberSetting("Naven Slide (ms)", 80, 20, 300, 10);
 
     private final List<NotificationEntry> notifications = new ArrayList<>();
 

@@ -34,12 +34,16 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
+import org.joml.Vector4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
 import client.nilore.ClientBase;
 import client.nilore.render.GaussianBlur;
 import client.nilore.render.ResourceLocationWrapper;
+import client.nilore.render.BlurFbo;
+import client.nilore.render.BlurShader;
 import client.nilore.render.shader.ShaderFormats;
 import client.nilore.render.shader.ShaderProgram;
 import client.nilore.utils.animation.Timer;
@@ -72,6 +76,9 @@ extends ClientBase {
     private static RenderTarget mainRenderTarget;
     private static ShaderProgram roundedRectShader;
     private static boolean blurFailed;
+    private static BlurShader gaussianBlur;
+    private static final BlurFbo blurFboA = new BlurFbo();
+    private static final BlurFbo blurFboB = new BlurFbo();
     private static float zLevel;
 
     public static void drawGradientV(PoseStack poseStack, float x, float y, float width, float height, int colorTop, int colorBottom) {
@@ -270,25 +277,57 @@ extends ClientBase {
             if (scissorWasEnabled) {
                 RenderSystem.enableScissor(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);
             }
+            // Samsara-style effect: 4x downsample, then two separable Gaussian passes. Sampling the
+            // quarter-res result gives a smooth frosted backdrop instead of the old 80-tap disc.
+            if (gaussianBlur == null) {
+                gaussianBlur = new BlurShader();
+                gaussianBlur.init();
+            }
+            int blurWidth = Math.max(4, textureTarget.width / 4);
+            int blurHeight = Math.max(4, textureTarget.height / 4);
+            blurFboA.resize(blurWidth, blurHeight);
+            blurFboB.resize(blurWidth, blurHeight);
+            GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, textureTarget.frameBufferId);
+            GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, blurFboA.getFboId());
+            GL30.glBlitFramebuffer(0, 0, textureTarget.width, textureTarget.height, 0, 0, blurWidth, blurHeight,
+                    GL11.GL_COLOR_BUFFER_BIT, GL11.GL_LINEAR);
+            float sigma = Math.max(1.0f, blurRadius * 0.25f);
+            blurFboB.bind();
+            gaussianBlur.render(blurFboA.getTextureId(), 1.0f, 0.0f, blurWidth, blurHeight, sigma);
+            blurFboA.bind();
+            gaussianBlur.render(blurFboB.getTextureId(), 0.0f, 1.0f, blurWidth, blurHeight, sigma);
+            mainRenderTarget.bindWrite(false);
+            GL11.glViewport(0, 0, RenderUtil.mainRenderTarget.width, RenderUtil.mainRenderTarget.height);
             blurShader.use();
             GL20.glUniform1i(blurShader.getUniformLocation("Sampler0"), 0);
             GlStateManager._activeTexture(33984);
-            GlStateManager._bindTexture(textureTarget.getColorTextureId());
+            GlStateManager._bindTexture(blurFboA.getTextureId());
             // +2 because common.glsl's ralpha insets its rounded-rect sdf by one unit on every side
             // ("center - 1.0"), which would otherwise leave a one pixel ring where nothing is
             // blurred and the panel/glow edges stop lining up.
             GL20.glUniform2f(blurShader.getUniformLocation("Size"), width + 2.0f, height + 2.0f);
             GL20.glUniform4f(blurShader.getUniformLocation("Radius"), radius, radius, radius, radius);
             GL20.glUniform1f(blurShader.getUniformLocation("Smoothness"), 1.0f);
-            GL20.glUniform1f(blurShader.getUniformLocation("BlurRadius"), blurRadius);
+            // Already blurred: the shader only applies the rounded-rect mask.
+            GL20.glUniform1f(blurShader.getUniformLocation("BlurRadius"), 0.0f);
             GL20.glUniform1f(blurShader.getUniformLocation("Opacity"), opacity);
+            // Sample the screen region the panel actually covers. The previous code mapped 0..1
+            // across the panel, which squeezed the whole frame inside it.
+            float guiWidth = mc.getWindow().getGuiScaledWidth();
+            float guiHeight = mc.getWindow().getGuiScaledHeight();
+            Vector4f corner = new Vector4f(x, y, 0.0f, 1.0f);
+            matrix4f.transform(corner);
+            float u1 = corner.x / guiWidth, v1 = 1.0f - corner.y / guiHeight;
+            corner.set(x + width, y + height, 0.0f, 1.0f);
+            matrix4f.transform(corner);
+            float u2 = corner.x / guiWidth, v2 = 1.0f - corner.y / guiHeight;
             Tesselator tesselator = Tesselator.getInstance();
             BufferBuilder bufferBuilder = tesselator.getBuilder();
             bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-            bufferBuilder.vertex(matrix4f, x, y, 0.0f).uv(0.0f, 1.0f).color(blendColor).endVertex();
-            bufferBuilder.vertex(matrix4f, x, y + height, 0.0f).uv(0.0f, 0.0f).color(blendColor).endVertex();
-            bufferBuilder.vertex(matrix4f, x + width, y + height, 0.0f).uv(1.0f, 0.0f).color(blendColor).endVertex();
-            bufferBuilder.vertex(matrix4f, x + width, y, 0.0f).uv(1.0f, 1.0f).color(blendColor).endVertex();
+            bufferBuilder.vertex(matrix4f, x, y, 0.0f).uv(u1, v1).color(blendColor).endVertex();
+            bufferBuilder.vertex(matrix4f, x, y + height, 0.0f).uv(u1, v2).color(blendColor).endVertex();
+            bufferBuilder.vertex(matrix4f, x + width, y + height, 0.0f).uv(u2, v2).color(blendColor).endVertex();
+            bufferBuilder.vertex(matrix4f, x + width, y, 0.0f).uv(u2, v1).color(blendColor).endVertex();
             BufferUploader.draw(bufferBuilder.end());
             GlStateManager._bindTexture(0);
             blurShader.stopUsing();

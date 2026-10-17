@@ -16,11 +16,11 @@ import client.nilore.settings.impl.ModeSetting;
 public final class Protocol extends Module {
     private final HeyPixelProtocolRuntime runtime = new HeyPixelProtocolRuntime(
         mc, Path.of(NiloreClient.configDir));
-    public final ModeSetting enabledHosts = new ModeSetting("Hosts", "pc.bjdmc.net,*.bjdmc.net");
+    public final ModeSetting enabledHosts = new ModeSetting("Hosts", "pc.bjdmc.net,*.bjdmc.net").withDefault("pc.bjdmc.net,*.bjdmc.net");
     public final BooleanSetting traceLogger = new BooleanSetting("Trace Logger", false);
     public final BooleanSetting observeOnly = new BooleanSetting("Observe Only", false);
     public final BooleanSetting allowLiveSend = new BooleanSetting("Allow Live Send", true);
-    public final BooleanSetting strictProviderGate = new BooleanSetting("Strict Provider Gate", true);
+    public final BooleanSetting strictProviderGate = new BooleanSetting("Strict Provider Gate", false);
 
     public Protocol() {
         super("Protocol", Category.WORLD);

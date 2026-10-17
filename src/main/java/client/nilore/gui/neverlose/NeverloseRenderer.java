@@ -7,6 +7,7 @@ import client.nilore.gui.neverlose.NeverloseLayout.Viewport;
 import client.nilore.render.DrawContext;
 import client.nilore.render.FontPresets;
 import client.nilore.render.FontRenderer;
+import client.nilore.render.Fonts;
 import client.nilore.render.GlHelper;
 import client.nilore.render.GlyphMetrics;
 import client.nilore.render.Paint;
@@ -43,11 +44,11 @@ public final class NeverloseRenderer {
             this.rasterAscent = rasterAscent;
         }
 
-        FontRenderer of(float size) {
+        FontRenderer of(float size, float rasterScale) {
             return switch (this) {
-                case REGULAR -> FontPresets.poppinsRegular(size);
-                case MEDIUM -> FontPresets.poppinsMedium(size);
-                case BOLD -> FontPresets.poppinsBold(size);
+                case REGULAR -> FontPresets.poppinsRegular(size, rasterScale);
+                case MEDIUM -> FontPresets.poppinsMedium(size, rasterScale);
+                case BOLD -> FontPresets.poppinsBold(size, rasterScale);
             };
         }
     }
@@ -85,7 +86,7 @@ public final class NeverloseRenderer {
             dc.translate(-WIDTH / 2, -HEIGHT / 2);
 
             Clipper clip = new Clipper(viewport, frame.openingScale());
-            Surface surface = new Surface(dc, clip, frame.opacity());
+            Surface surface = new Surface(dc, clip, frame.opacity(), Fonts.deviceScale(viewport.scale()));
 
             // Backdrop blur behind the window, then the rounded drop shadow in front of it.
             Rect screenWindow = viewport.screen(WINDOW, frame.openingScale());
@@ -168,11 +169,13 @@ public final class NeverloseRenderer {
         private final DrawContext dc;
         private final Clipper clip;
         private final float globalAlpha;
+        private final float rasterScale;
 
-        Surface(DrawContext dc, Clipper clip, float globalAlpha) {
+        Surface(DrawContext dc, Clipper clip, float globalAlpha, float rasterScale) {
             this.dc = dc;
             this.clip = clip;
             this.globalAlpha = globalAlpha;
+            this.rasterScale = rasterScale;
         }
 
         private int col(int color) {
@@ -201,7 +204,7 @@ public final class NeverloseRenderer {
             if (value == null || value.isEmpty()) {
                 return;
             }
-            FontRenderer font = face.of(size);
+            FontRenderer font = face.of(size, this.rasterScale);
             String shown = maxWidth > 0 ? elide(value, font, maxWidth) : value;
             GlHelper.drawText(shown, x, textTop(face, font, size, centerY), font, col(color));
         }
@@ -300,7 +303,7 @@ public final class NeverloseRenderer {
         void editor(Rect bounds, Editor editor, String hint, float padding) {
             rounded(bounds, 3.5f, 0xFF0E1011);
             border(bounds, 3.5f, editor.focused() ? 0xFF315374 : 0xFF202325);
-            FontRenderer font = Face.REGULAR.of(SZ_EDITOR);
+            FontRenderer font = Face.REGULAR.of(SZ_EDITOR, this.rasterScale);
             float left = bounds.x() + padding, right = bounds.right() - 9;
             clip.push(new Rect(left, bounds.y() + 2, right - left, bounds.height() - 4));
             float offset = editorOffset(editor, bounds, padding);
@@ -324,7 +327,7 @@ public final class NeverloseRenderer {
             if (!editor.focused()) {
                 return 0;
             }
-            FontRenderer font = Face.REGULAR.of(SZ_EDITOR);
+            FontRenderer font = Face.REGULAR.of(SZ_EDITOR, this.rasterScale);
             return Math.max(0, GlHelper.getStringWidth(editor.value().substring(0, editor.cursor()), font)
                     - box.width() + padding + 18);
         }
@@ -394,7 +397,7 @@ public final class NeverloseRenderer {
                     if (row.editing()) {
                         border(number, 2.5f, 0xFF3A6E97);
                     }
-                    FontRenderer font = Face.REGULAR.of(SZ_VALUE);
+                    FontRenderer font = Face.REGULAR.of(SZ_VALUE, this.rasterScale);
                     float width = GlHelper.getStringWidth(row.value(), font);
                     float textX = number.x() + Math.max(3, (number.width() - width) / 2f);
                     text(row.value(), textX, centerY, Face.REGULAR, SZ_VALUE, row.editing() ? WHITE : TEXT,
@@ -428,10 +431,10 @@ public final class NeverloseRenderer {
                     float width = row.kind() == Kind.BOOLEAN || row.kind() == Kind.ENABLED
                             ? row.bounds().width() - 40 : row.bounds().width() - 128;
                     if (frame.mouseX() < control(row.bounds()).x()
-                            && GlHelper.getStringWidth(row.label(), Face.REGULAR.of(SZ_LABEL)) > width) {
+                            && GlHelper.getStringWidth(row.label(), Face.REGULAR.of(SZ_LABEL, this.rasterScale)) > width) {
                         tooltip(row.label(), frame.mouseX(), frame.mouseY());
                     } else if (row.kind() == Kind.CHOICE && frame.mouseX() >= control(row.bounds()).x()
-                            && GlHelper.getStringWidth(row.value(), Face.REGULAR.of(SZ_LABEL))
+                            && GlHelper.getStringWidth(row.value(), Face.REGULAR.of(SZ_LABEL, this.rasterScale))
                             > control(row.bounds()).width() - 26) {
                         tooltip(row.value(), frame.mouseX(), frame.mouseY());
                     }
@@ -440,7 +443,7 @@ public final class NeverloseRenderer {
         }
 
         void tooltip(String label, float mouseX, float mouseY) {
-            FontRenderer font = Face.REGULAR.of(SZ_TOOLTIP);
+            FontRenderer font = Face.REGULAR.of(SZ_TOOLTIP, this.rasterScale);
             float width = Math.min(460, GlHelper.getStringWidth(label, font) + 20);
             Rect bounds = new Rect(clamp(mouseX + 14, SIDEBAR + 8, WIDTH - width - 12),
                     clamp(mouseY + 15, HEADER + 8, HEIGHT - 40), width, 27);

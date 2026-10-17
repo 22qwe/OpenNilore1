@@ -42,7 +42,7 @@ public class Helper extends Module {
 
     private final MultiSelectSetting modulesSetting = new MultiSelectSetting(
             "Mode", "Self Extinguish", "Extinguish Fire", "Block Lava", "Block Water")
-            .withDefaults("Self Extinguish", "Extinguish Fire", "Block Lava", "Block Water");
+            .withDefaults("Block Water", "Block Lava", "Extinguish Fire", "Self Extinguish");
     private final BooleanSetting smoothRotationSetting = new BooleanSetting("Legit", false);
     private final NumberSetting rotationSpeedSetting = new NumberSetting(
             "Speed", 45, 2, 180, 1, this.smoothRotationSetting::getValue);

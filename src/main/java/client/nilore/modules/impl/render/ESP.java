@@ -52,7 +52,7 @@ public class ESP extends Module {
     private final BooleanSetting mobsSetting = new BooleanSetting("Mobs", false);
     private final BooleanSetting animalsSetting = new BooleanSetting("Animals", false);
     private final BooleanSetting itemsSetting = new BooleanSetting("Items", false);
-    private final BooleanSetting arrowsSetting = new BooleanSetting("Arrows", true);
+    private final BooleanSetting arrowsSetting = new BooleanSetting("Arrows", false);
     private final BooleanSetting skeletonSetting = new BooleanSetting("Skeleton", false);
     private final Map<Entity, Pair<Vector4d, Boolean>> entityBoxPositions = new HashMap<>();
     private final BooleanSetting showHealthBarSetting = new BooleanSetting("Show Health Bar", true);

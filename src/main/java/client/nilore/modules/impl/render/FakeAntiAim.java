@@ -19,15 +19,15 @@ public class FakeAntiAim extends Module {
 
     public static final float STATIC_LIMIT = 360.0f;
 
-    public final BooleanSetting overrideRotation = new BooleanSetting("Override Rotation", false);
+    public final BooleanSetting overrideRotation = new BooleanSetting("Override Rotation", true);
 
     public final ModeSetting entityYawMode = new ModeSetting("Entity Yaw", SPIN, STATIC, NOT_MODIFIED).withDefault(SPIN);
-    public final NumberSetting entityYawValue = new NumberSetting("Entity Yaw Value", 10, -360, 360, 1,
+    public final NumberSetting entityYawValue = new NumberSetting("Entity Yaw Value", 54, -360, 360, 1,
             () -> !entityYawMode.is(NOT_MODIFIED));
     public final NumberSetting entityYawJitter = new NumberSetting("Entity Yaw Jitter", 0, -360, 360, 1);
 
     public final ModeSetting entityPitchMode = new ModeSetting("Entity Pitch", SPIN, STATIC, NOT_MODIFIED).withDefault(NOT_MODIFIED);
-    public final NumberSetting entityPitchValue = new NumberSetting("Entity Pitch Value", 0, -360, 360, 1,
+    public final NumberSetting entityPitchValue = new NumberSetting("Entity Pitch Value", 88, -360, 360, 1,
             () -> !entityPitchMode.is(NOT_MODIFIED));
     public final NumberSetting entityPitchJitter = new NumberSetting("Entity Pitch Jitter", 0, -360, 360, 1);
 
@@ -37,9 +37,9 @@ public class FakeAntiAim extends Module {
     public final NumberSetting headYawJitter = new NumberSetting("Head Yaw Jitter", 0, -360, 360, 1);
 
     public final ModeSetting headPitchMode = new ModeSetting("Head Pitch", SPIN, STATIC, NOT_MODIFIED).withDefault(NOT_MODIFIED);
-    public final NumberSetting headPitchValue = new NumberSetting("Head Pitch Value", 0, -360, 360, 1,
+    public final NumberSetting headPitchValue = new NumberSetting("Head Pitch Value", -114, -360, 360, 1,
             () -> !headPitchMode.is(NOT_MODIFIED));
-    public final NumberSetting headPitchJitter = new NumberSetting("Head Pitch Jitter", 0, -360, 360, 1);
+    public final NumberSetting headPitchJitter = new NumberSetting("Head Pitch Jitter", 3, -360, 360, 1);
 
     public FakeAntiAim() {
         super("FakeAntiAim", Category.RENDER);

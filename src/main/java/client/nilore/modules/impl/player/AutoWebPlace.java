@@ -50,11 +50,11 @@ public class AutoWebPlace extends Module {
     public static AutoWebPlace INSTANCE;
     public static Rotation targetRotation;
 
-    public final NumberSetting rangeSetting = new NumberSetting("Range", 4.0, 3.0, 5.0, 0.1);
-    public final NumberSetting delaySetting = new NumberSetting("Delay", 4.0, 1.0, 20.0, 1.0);
+    public final NumberSetting rangeSetting = new NumberSetting("Range", 4, 3.0, 5.0, 0.1);
+    public final NumberSetting delaySetting = new NumberSetting("Delay", 2, 1.0, 20.0, 1.0);
     public final BooleanSetting renderSetting = new BooleanSetting("Render", true);
     public final BooleanSetting groundWebSetting = new BooleanSetting("Ground Web", false);
-    public final BooleanSetting lavaSetting = new BooleanSetting("Lava", true);
+    public final BooleanSetting lavaSetting = new BooleanSetting("Lava", false);
     public final BooleanSetting lavaWaitWaterBucketSetting = new BooleanSetting("Lava Wait Water Bucket", true);
     public final BooleanSetting debugSetting = new BooleanSetting("Debug", true);
 

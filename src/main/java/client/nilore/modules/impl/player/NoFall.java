@@ -23,7 +23,7 @@ extends Module {
 
     public boolean jumpLandingBoost = false;
     public boolean boostActive = false;
-    private final NumberSetting fallDistanceSetting = new NumberSetting("Fall Distance", 3.0, 0.0, 10.0, 0.5);
+    private final NumberSetting fallDistanceSetting = new NumberSetting("Fall Distance", 3, 0.0, 10.0, 0.5);
     private boolean fallDistanceReached = false;
     private boolean sentFlyPacket = false;
     private int jumpTicks = 0;

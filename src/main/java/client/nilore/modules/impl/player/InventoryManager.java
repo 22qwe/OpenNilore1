@@ -50,16 +50,16 @@ import client.nilore.event.EventTarget;
 public class InventoryManager extends Module {
     public static InventoryManager INSTANCE;
 
-    private final NumberSetting actionDelaySetting = new NumberSetting("Delay", 110, 0, 500, 10);
+    private final NumberSetting actionDelaySetting = new NumberSetting("Delay", 180, 0, 500, 10);
     private final NumberSetting sprintDelayTicksSetting = new NumberSetting("Open Delay", 2, 0, 10, 1);
-    private final NumberSetting dropDelaySetting = new NumberSetting("Drop Delay", 40, 0, 500, 10);
+    private final NumberSetting dropDelaySetting = new NumberSetting("Drop Delay", 70, 0, 500, 10);
     private final BooleanSetting autoArmorSetting = new BooleanSetting("Auto Armor", true);
     private final BooleanSetting throwItemsSetting = new BooleanSetting("Throw Items", true);
     private final ModeSetting offhandItemSetting = new ModeSetting("Offhand Items", "None", "Golden Apple", "Projectile", "Fishing Rod", "Block").withDefault("None");
     private final ModeSetting bowPrioritySetting = new ModeSetting("Bow Priority", "Crossbow", "Power Bow", "Punch Bow").withDefault("Power Bow");
-    private final BooleanSetting inventoryOnlySetting = new BooleanSetting("Inventory Only", false);
+    private final BooleanSetting inventoryOnlySetting = new BooleanSetting("Inventory Only", true);
     private final BooleanSetting pauseOnKillAura = new BooleanSetting("Pause On KillAura", true);
-    private final BooleanSetting fastThrowSetting = new BooleanSetting("Fast Throw", true);
+    private final BooleanSetting fastThrowSetting = new BooleanSetting("Fast Throw", false);
     private final NumberSetting maxEggsSnowballsSetting = new NumberSetting("Max Eggs & Snowballs Size", 64, 16, 256, 16);
     public final NumberSetting maxBlockSizeSetting = new NumberSetting("Max Block Size", 256, 64, 512, 64);
     private final NumberSetting maxFoodSizeSetting = new NumberSetting("Max Food Size", 128, 32, 256, 32);

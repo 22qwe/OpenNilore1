@@ -202,10 +202,6 @@ public class RotationHandler
             float refPitch = sentRotation != null ? sentRotation.getPitch() : pitch;
             yaw = naturalizeYaw(yaw, refYaw);
             pitch = naturalizePitch(pitch, refPitch);
-            if (Math.abs(yaw - baseYaw) > 100.0f) {
-                logger.info("[Rot] jump base={} target={} out={} delta={} rotating={}",
-                        baseYaw, targetRotation.getYaw(), yaw, yaw - baseYaw, isRotating);
-            }
             if (!Float.isNaN(yaw) && !Float.isNaN(pitch) && !Float.isInfinite(yaw) && !Float.isInfinite(pitch)) {
                 e.setYaw(yaw);
                 e.setPitch(pitch);
@@ -292,7 +288,6 @@ public class RotationHandler
         if (yaw == lastWireYaw && pitch == lastWirePitch) {
             yaw = nudgeApart(yaw);
             e.setYaw(yaw);
-            logger.info("[Rot] equalrotation guard {} -> {}", lastWireYaw, yaw);
         }
         lastWireYaw = yaw;
         lastWirePitch = pitch;

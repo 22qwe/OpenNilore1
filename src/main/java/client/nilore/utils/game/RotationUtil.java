@@ -716,6 +716,15 @@ extends ClientBase {
     }
 
     public static Vec3 findAimPoint(Entity entity, double range, float partialTicks) {
+        return RotationUtil.findAimPoint(entity, range, partialTicks, true);
+    }
+
+    /**
+     * @param allowOccluded when false, a target with no visible point (everything behind blocks)
+     *                      yields null instead of the occluded eye point. Used by KillAura with
+     *                      Through Walls off, so a fully hidden target is not aimed at at all.
+     */
+    public static Vec3 findAimPoint(Entity entity, double range, float partialTicks, boolean allowOccluded) {
         if (entity == null || mc.player == null || mc.level == null) {
             return null;
         }
@@ -735,16 +744,18 @@ extends ClientBase {
         double height = aabb.maxY - aabb.minY;
         for (double fraction : AIM_HEIGHT_FRACTIONS) {
             double y = aabb.minY + height * fraction;
-            Vec3 columnPoint = new Vec3(interpolatedPos.x, y, interpolatedPos.z);
-            if (RotationUtil.canHitPoint(entity, columnPoint, range, aabb)) {
-                return columnPoint;
-            }
+            // Reference order: the column clamped to the player's own eye first (shortest
+            // horizontal travel, best reach margin), then the entity's center column.
             Vec3 eyeColumnPoint = new Vec3(x, y, z);
             if (RotationUtil.canHitPoint(entity, eyeColumnPoint, range, aabb)) {
                 return eyeColumnPoint;
             }
+            Vec3 columnPoint = new Vec3(interpolatedPos.x, y, interpolatedPos.z);
+            if (RotationUtil.canHitPoint(entity, columnPoint, range, aabb)) {
+                return columnPoint;
+            }
         }
-        return fallback;
+        return allowOccluded ? fallback : null;
     }
 
     public static Vec3 findAimPoint(Entity entity, double range) {

@@ -26,16 +26,16 @@ public class ScoreboardHud extends HudElement {
     private boolean autoPositioned = false;
 
     public final BooleanSetting backgroundEnabled = new BooleanSetting("Background", true);
-    public final NumberSetting backgroundAlpha    = new NumberSetting("Background Alpha", 70, 0, 255, 1);
-    public final NumberSetting backgroundRadius   = new NumberSetting("Background Radius", 2.0f, 0.0f, 10.0f, 0.25f);
+    public final NumberSetting backgroundAlpha    = new NumberSetting("Background Alpha", 115, 0, 255, 1);
+    public final NumberSetting backgroundRadius   = new NumberSetting("Background Radius", 6.7, 0.0f, 10.0f, 0.25f);
 
     public final BooleanSetting blurEnabled  = new BooleanSetting("Blur", false);
-    public final NumberSetting blurStrength  = new NumberSetting("Blur Strength", 15.0f, 1.0f, 30.0f, 1.0f);
-    public final NumberSetting blurOpacity   = new NumberSetting("Blur Opacity", 0.95f, 0.0f, 1.0f, 0.05f);
+    public final NumberSetting blurStrength  = new NumberSetting("Blur Strength", 30, 1.0f, 30.0f, 1.0f);
+    public final NumberSetting blurOpacity   = new NumberSetting("Blur Opacity", 0.7, 0.0f, 1.0f, 0.05f);
 
-    public final BooleanSetting glowEnabled  = new BooleanSetting("Glow", false);
-    public final NumberSetting glowRadius    = new NumberSetting("Glow Radius", 12, 4, 40, 1);
-    public final NumberSetting glowAlpha     = new NumberSetting("Glow Alpha", 120, 0, 255, 1);
+    public final BooleanSetting glowEnabled  = new BooleanSetting("Glow", true);
+    public final NumberSetting glowRadius    = new NumberSetting("Glow Radius", 8, 4, 40, 1);
+    public final NumberSetting glowAlpha     = new NumberSetting("Glow Alpha", 109, 0, 255, 1);
 
     public ScoreboardHud() {
         super("Scoreboard");

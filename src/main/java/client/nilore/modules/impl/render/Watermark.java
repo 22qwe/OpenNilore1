@@ -17,20 +17,15 @@ import client.nilore.render.Paint;
 import client.nilore.render.RoundedRectangle;
 import client.nilore.settings.impl.BooleanSetting;
 import client.nilore.settings.impl.ModeSetting;
-import client.nilore.settings.impl.NumberSetting;
 import client.nilore.event.EventTarget;
 import client.nilore.utils.render.RenderUtil;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.PlayerInfo;
 
 public class Watermark extends Module {
-    final ModeSetting styleSetting = new ModeSetting("Style", "Neverlose", "DynamicIsland", "Simple", "Pharos", "Exhibition", "Logo").withDefault("DynamicIsland");
+    final ModeSetting styleSetting = new ModeSetting("Style", "Neverlose", "DynamicIsland", "Simple", "Pharos", "Exhibition", "Logo").withDefault("Exhibition");
     private final BooleanSetting showFpsSetting = new BooleanSetting("Show FPS", true, () -> this.styleSetting.is("Exhibition"));
     private final BooleanSetting showMsSetting = new BooleanSetting("Show MS", true, () -> this.styleSetting.is("Exhibition"));
-    private final NumberSetting bgAlpha = new NumberSetting("BG Alpha", 160, 0, 255, 1, () -> this.styleSetting.is("Simple"));
-    private final BooleanSetting glow = new BooleanSetting("Glow", false, () -> this.styleSetting.is("Simple"));
-    private final NumberSetting glowRadius = new NumberSetting("Glow Radius", 12, 4, 40, 1, () -> this.styleSetting.is("Simple") && this.glow.getValue());
-    private final NumberSetting glowAlpha = new NumberSetting("Glow Alpha", 120, 0, 255, 1, () -> this.styleSetting.is("Simple") && this.glow.getValue());
     private final DynamicIsland dynamicIsland = new DynamicIsland();
     private final LogoWatermark logoWatermark = new LogoWatermark();
     private final NeverloseWatermark neverloseWatermark = new NeverloseWatermark();
@@ -40,14 +35,16 @@ public class Watermark extends Module {
     private static final FontRenderer fpsFont = Fonts.getRenderer("quicksand.ttf", 20.0f);
     private static final float MARGIN = 8.0f;
 
-    // Simple capsule style (centered)
-    private static final FontRenderer iconFont = FontPresets.niloreIcon(24.0f);
-    private static final FontRenderer textFont = FontPresets.pingfang(24.0f);
+    // Simple style (top-left glass panel)
+    private static final FontRenderer textFont = FontPresets.productSans(24.0f);
     private static final int TEXT_COLOR = 0xFFFFFFFF;
-    private static final int INFO_COLOR = 0xCCFFFFFF;
-    private static final float ICON_SIZE = 20.0f;
-    private static final float PAD = 3.0f;
-    private static final int BG_COLOR_BASE = 0x0A0A0A;
+    private static final int SEPARATOR_COLOR = 0xFF9E9E9E;
+    private static final int TEXT_SHADOW_COLOR = 0x64000000;
+    private static final float SIMPLE_PAD_X = 7.0f;
+    private static final float SIMPLE_PAD_Y = 4.0f;
+    private static final float SIMPLE_RADIUS = 6.0f;
+    private static final float SIMPLE_BLUR_STRENGTH = 20.0f;
+    private static final float SIMPLE_BLUR_OPACITY = 0.9f;
 
     public Watermark() {
         super("Watermark", Category.RENDER);
@@ -96,58 +93,68 @@ public class Watermark extends Module {
     private void renderSimple(DrawContext ctx) {
         if (mc.player == null) return;
 
-        String icon = "N";
         String clientName = NiloreClient.CLIENT_NAME;
-        String userName = mc.player.getGameProfile().getName();
-        String fpsText = mc.getFps() + "fps";
-        String pingText = getPing() + "ms";
-        String infoText = " | " + userName + " | " + fpsText + " | " + pingText;
+        String version = NiloreClient.VERSION;
+        String fpsText = mc.getFps() + "FPS";
+        String separator = " | ";
 
-        float iconW = iconFont.getWidth(icon);
+        ModuleListHud moduleList = NiloreClient.getInstance().getHudManager() != null
+                ? NiloreClient.getInstance().getHudManager().getHudElement(ModuleListHud.class)
+                : null;
+
         float nameW = textFont.getWidth(clientName);
-        float infoW = textFont.getWidth(infoText);
+        float separatorW = textFont.getWidth(separator);
+        float versionW = textFont.getWidth(version);
+        float fpsW = textFont.getWidth(fpsText);
 
-        float contentW = iconW + PAD + nameW + infoW;
-        float lineH = Math.max(ICON_SIZE, textFont.getMetrics().height());
-        float boxH = lineH + PAD * 2;
-        float boxW = contentW + PAD * 2 + 6f;
+        float lineH = textFont.getMetrics().height();
+        float boxW = SIMPLE_PAD_X * 2 + nameW + separatorW * 2 + versionW + fpsW;
+        float boxH = lineH + SIMPLE_PAD_Y * 2;
+        float x = MARGIN;
+        float y = MARGIN;
 
-        float screenW = mc.getWindow().getGuiScaledWidth();
-        float screenH = mc.getWindow().getGuiScaledHeight();
-        float x = (screenW - boxW) / 2;
-        float y = screenH / 20;
+        // Frosted glass background
+        RenderUtil.drawBlurredRect(ctx.getPoseStack(), x, y, boxW, boxH, SIMPLE_RADIUS,
+                SIMPLE_BLUR_STRENGTH, SIMPLE_BLUR_OPACITY, 0);
 
-        // Capsule background (full pill shape)
-        float radius = boxH / 2;
-        int bgColor = BG_COLOR_BASE | (bgAlpha.getValue().intValue() << 24);
-        RoundedRectangle capsule = RoundedRectangle.ofXYWHR(x, y, boxW, boxH, radius);
-        ctx.drawRoundedRect(capsule, new Paint().setColor(bgColor));
-
-        // Glow behind background (like Armor module)
-        if (glow.getValue()) {
-            int gRadius = this.glowRadius.getValue().intValue();
-            int gAlpha = this.glowAlpha.getValue().intValue();
-            if (gAlpha > 0 && gRadius > 0) {
-                RenderUtil.drawShadow(ctx.getPoseStack(), x, y, boxW, boxH, gRadius, (gAlpha << 24) | 0x000000);
-                RenderUtil.enableBlend();
-            }
+        // 60 alpha dark tint over the blur
+        try (Paint paint = new Paint()) {
+            paint.setColor(0x3C000000);
+            ctx.drawRoundedRect(RoundedRectangle.ofXYWHR(x, y, boxW, boxH, SIMPLE_RADIUS), paint);
         }
 
-        float cursorX = x + PAD + 3f;
-        float textY = y + PAD + (lineH - iconFont.getMetrics().height()) / 2 + 13f;
+        float textY = y + (boxH - lineH) / 2.0f + 11.5f;
+        float cursorX = x + SIMPLE_PAD_X;
 
-        // Icon "N"
-        ctx.drawString(icon, cursorX, textY, iconFont, new Paint().setColor(TEXT_COLOR));
-        cursorX += iconW + PAD;
+        // Client name follows the ModuleList theme; it is the one part without a text shadow.
+        int nameLength = clientName.length();
+        for (int i = 0; i < nameLength; i++) {
+            String ch = String.valueOf(clientName.charAt(i));
+            float t = nameLength <= 1 ? 0.0f : i / (float) (nameLength - 1);
+            int color = moduleList != null
+                    ? moduleList.getThemeColor(i, t, nameLength - 1)
+                    : TEXT_COLOR;
+            try (Paint paint = new Paint()) {
+                paint.setColor(color);
+                ctx.drawString(ch, cursorX, textY, textFont, paint);
+            }
+            cursorX += textFont.getWidth(ch);
+        }
 
-        // Client name "Nilore"
-        float nameY = y + PAD + (lineH - textFont.getMetrics().height()) / 2 + 10f;
-        ctx.drawString(clientName, cursorX, nameY, textFont, new Paint().setColor(TEXT_COLOR));
-        cursorX += nameW;
+        cursorX = this.drawSimpleText(ctx, separator, cursorX, textY, SEPARATOR_COLOR);
+        cursorX = this.drawSimpleText(ctx, version, cursorX, textY, TEXT_COLOR);
+        cursorX = this.drawSimpleText(ctx, separator, cursorX, textY, SEPARATOR_COLOR);
+        this.drawSimpleText(ctx, fpsText, cursorX, textY, TEXT_COLOR);
+    }
 
-        // Info text (username | fps | ping) in dimmer white
-        float infoY = y + PAD + (lineH - textFont.getMetrics().height()) / 2 + 10f;
-        ctx.drawString(infoText, cursorX, infoY, textFont, new Paint().setColor(INFO_COLOR));
+    private float drawSimpleText(DrawContext ctx, String text, float x, float y, int color) {
+        try (Paint paint = new Paint()) {
+            paint.setColor(TEXT_SHADOW_COLOR);
+            ctx.drawString(text, x + 0.5f, y + 0.5f, textFont, paint);
+            paint.setColor(color);
+            ctx.drawString(text, x, y, textFont, paint);
+        }
+        return x + textFont.getWidth(text);
     }
 
     private void renderPharos(DrawContext ctx) {

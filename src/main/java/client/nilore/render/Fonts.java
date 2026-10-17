@@ -3,7 +3,9 @@ package client.nilore.render;
 import java.awt.Font;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import client.nilore.ClientBase;
 import client.nilore.utils.misc.Assets;
 
 public final class Fonts {
@@ -11,17 +13,51 @@ public final class Fonts {
     private static final Map<String, CustomFont> customFontCache = new HashMap<>();
     private static final Map<String, Font> awtFontCache = new HashMap<>();
 
+    private static final int MAX_RASTER_VARIANTS = 24;
+    private static final Map<String, CustomFont> scaledFontCache = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, CustomFont> eldest) {
+            if (this.size() <= MAX_RASTER_VARIANTS) {
+                return false;
+            }
+            eldest.getValue().close();
+            return true;
+        }
+    };
+
     public static FontRenderer getRenderer(String name, float size, FontFormat format) {
-        String key = name + "-" + size;
-        return fontRendererCache.computeIfAbsent(key, k -> new FontRenderer(name, size));
+        return getRenderer(name, size, format, 0f, true);
     }
 
     public static FontRenderer getRenderer(String name, float size) {
         return getRenderer(name, size, detectFormat(name));
     }
 
+    public static FontRenderer getRenderer(String name, float size, float rasterScale, boolean hinted) {
+        return getRenderer(name, size, detectFormat(name), rasterScale, hinted);
+    }
+
+    public static FontRenderer getRenderer(String name, float size, FontFormat format,
+                                           float rasterScale, boolean hinted) {
+        String key = name + "-" + size;
+        if (rasterScale > 0f || !hinted) {
+            key = key + "@" + rasterScale + (hinted ? "" : "-raw");
+        }
+        String cacheKey = key;
+        return fontRendererCache.computeIfAbsent(cacheKey,
+                k -> new FontRenderer(name, size, false, rasterScale, hinted));
+    }
+
+    public static float deviceScale(float poseScale) {
+        return Math.max(0.25f, (float)ClientBase.mc.getWindow().getGuiScale() * poseScale);
+    }
+
+    public static float supersampledScale() {
+        return Math.max(2f, (float)ClientBase.mc.getWindow().getGuiScale() * 2f);
+    }
+
     public static synchronized CustomFont getCustomFont(String name, float size) {
-        return getCustomFont(name, size, false);
+        return getCustomFont(name, size, false, 0f, true);
     }
 
     /**
@@ -37,8 +73,16 @@ public final class Fonts {
      *             粗体和常规是两份独立缓存，不会互相污染。
      */
     public static synchronized CustomFont getCustomFont(String name, float size, boolean bold) {
-        String key = name + "-" + size + (bold ? "-bold" : "");
-        CustomFont customFont = customFontCache.get(key);
+        return getCustomFont(name, size, bold, 0f, true);
+    }
+
+    public static synchronized CustomFont getCustomFont(String name, float size, boolean bold,
+                                                        float rasterScale, boolean hinted) {
+        boolean explicit = rasterScale > 0f || !hinted;
+        String key = name + "-" + size + (bold ? "-bold" : "")
+                + (explicit ? "@" + rasterScale + (hinted ? "" : "-raw") : "");
+        Map<String, CustomFont> cache = explicit ? scaledFontCache : customFontCache;
+        CustomFont customFont = cache.get(key);
         if (customFont != null) {
             return customFont;
         }
@@ -54,8 +98,8 @@ public final class Fonts {
                 }
             }
             Font derived = font.deriveFont(0, size / 2.0f);
-            CustomFont cf = new CustomFont(derived, size / 2.0f, bold, fallbacks);
-            customFontCache.put(key, cf);
+            CustomFont cf = new CustomFont(derived, size / 2.0f, bold, fallbacks, rasterScale, hinted);
+            cache.put(key, cf);
             return cf;
         } catch (Exception exception) {
             exception.printStackTrace();
